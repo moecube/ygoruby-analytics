@@ -1,0 +1,36 @@
+{
+    "CardDatabase": "ygopro-database/cards.zh-CN.cdb",
+    "Unzipper":
+    {
+
+    },
+    "SingleCardAnalyzer":
+    {
+        "DatabaseName": "Data/SingleCardAnalysis.sqlite",
+        "OutputJsonName": "Data/SingleCardAnalysis.json",
+        "TopNumbers": "50",
+        "Manual": true,
+        "OutputName":
+        {
+            "Day": "Day",
+            "Week": "Week",
+            "Month": "Month",
+            "Season": "Season",
+            "Time": "Time"
+        }
+    },
+    "Generator":
+    {
+        "inputName": "HTMLGenerator/mod.html",
+        "outputName": "HTMLGenerator/content.html",
+        "dataName": "Data/SingleCardAnalysis.json",
+        "title": "统计",
+        "fromPath": "./mod.html",
+        "toPath": "./content.html",
+        "imagePath": "http://cdn233.my-card.in/ygopro/pics/thumbnail/%s.jpg",
+        "dayTableName": "day-generate",
+        "weekTableName": "week-generate",
+        "dayLabelName": "day-name",
+        "weekLabelName": "week-name"
+    }
+}

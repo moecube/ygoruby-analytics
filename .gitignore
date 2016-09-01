@@ -1,0 +1,6 @@
+node_modules/
+.vscode/
+Data/
+bower_components/
+Test.rb
+HTMLGenerator/content.html

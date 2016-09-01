@@ -1,0 +1,17 @@
+GEM
+  remote: https://ruby.taobao.org/
+  specs:
+    json (2.0.2)
+    ruby-lzma (0.4.3)
+    sqlite3 (1.3.11)
+
+PLATFORMS
+  ruby
+
+DEPENDENCIES
+  json (>= 1.7.7)
+  ruby-lzma (>= 0.4.3)
+  sqlite3 (>= 1.3.10)
+
+BUNDLED WITH
+   1.12.5
