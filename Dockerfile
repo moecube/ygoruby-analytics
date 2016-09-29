@@ -10,16 +10,13 @@ RUN mkdir -p /usr/src/app
 WORKDIR /usr/src/app
 COPY ./Gemfile /usr/src/app
 COPY ./Gemfile.lock /usr/src/app
+RUN bundle install
 COPY . /usr/src/app
-#RUN bundle install
 
 # 配置计划任务
 # 妈啊不会
-#COPY ./Crontab /etc/cron.d/cron
-#RUN chmod 0644 /etc/cron.d/cron
-#RUN touch /usr/src/cron.log
-#CMD cron && tail -f /usr/src/cron.log
+COPY ./crontab /etc/crontab
+RUN crontab /etc/crontab
 
 # 启动
-RUN ruby -X /usr/src/app
-#RUN ruby /usr/src/app/main.rb
+CMD cron && ruby main.rb
