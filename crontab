@@ -1,0 +1,8 @@
+# 手动模式下，每两个小时把缓存存进数据库
+0 */2 * * * curl -d "" "http://0.0.0.0:8080/analyze/finish"
+# 每天结束时，计算各天的数据并离开
+58 23 * * * curl -X DELETE "http://0.0.0.0:8080/analyze"
+# 每天开始时，强制缓存（不然第一个用户会特别慢）
+0 0 * * * curl "http://0.0.0.0:8080/analyze/single"
+# Test
+*/1 * * * * echo "hello"
