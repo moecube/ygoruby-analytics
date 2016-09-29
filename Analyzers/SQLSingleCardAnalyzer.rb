@@ -72,6 +72,7 @@ class SQLSingleCardAnalyzer < AnalyzerBase
 		union_table Names::Day, Names::HalfMonth, time
 		union_table Names::Day, Names::Month, time
 		union_season Names::Day, time
+		@last_result = nil
 	end
 
 	def output(*args)
