@@ -75,7 +75,7 @@ module Analyzer
 		request.body.rewind
 		source = params["source"]
 		require "#{File.dirname __FILE__}/../YgorubyBase/Deck.rb"
-		Analyzer.analyze Deck.load_ydk(request.body), source: source
+		Analyzer.analyze Deck.load_ydk_str(request.body.read), source: source
 		"Deck read"
 	end
 

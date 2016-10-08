@@ -14,6 +14,7 @@ class Deck
 		@main = []
 		@ex   = []
 		@side = []
+		@pointer = @main
 	end
 
 	def self.from_replay(replay)
@@ -87,28 +88,36 @@ class Deck
 		file.close
 	end
 
+	def accept_line(line)
+		return if line == nil or line == "" or line.start_with? "#"
+		if line == DECKFILE_MAIN_FLAG
+			@pointer = @main
+		elsif line == DECKFILE_EX_FLAG
+			@pointer = @ex
+		elsif line == DECKFILE_SIDE_FLAG
+			@pointer = @side
+		else
+			@pointer.push line.to_i
+		end
+	end
+
 	def self.load_ydk(file_path)
 		deck = Deck.new
-		if file_path.is_a? String
-			file = File.open file_path
-		else
-			file = file_path
-		end
-		pointer = deck.main
+		file = File.open file_path
 		while !file.eof?
 			line = file.readline.chomp
-			next if line.start_with? "#"
-			next if line == ""
-			if line == DECKFILE_MAIN_FLAG
-				pointer = deck.main
-			elsif line == DECKFILE_EX_FLAG
-				pointer = deck.ex
-			elsif line == DECKFILE_SIDE_FLAG
-				pointer = deck.side
-			else
-				pointer.push line.to_i
-			end
+			deck.accept_line line
 		end
+		file.close
+		deck.separate_ex_from_main
+		deck.classify
+		deck
+	end
+
+	def self.load_ydk_str(str)
+		lines = str.split "\n"
+		deck = Deck.new
+		lines.each { |line| deck.accept_line line }
 		deck.separate_ex_from_main
 		deck.classify
 		deck

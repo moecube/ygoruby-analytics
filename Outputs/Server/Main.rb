@@ -33,7 +33,7 @@ module Outputs
 		end
 
 		@@config = $config["Outputs.Server"]
-		self.port = @@config["Port"].to_i if @@config["Port"] != nil
-                self.bind = '0.0.0.0'
+		self.port = @@config["Port"].to_i if @@config["Port"] != @@config
+		self.bind = @@config["Bind"].to_i if @@config["Bind"] != @@config
 	end
 end

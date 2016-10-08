@@ -103,6 +103,19 @@ class CardSet
 	def self.load_sql
 		@@database = Card.database
 	end
+
+	def to_hash
+		{
+				name: @name,
+				origin_name: @origin_name,
+		    code: @code,
+		    ids: @ids
+		}
+	end
+
+	def to_json
+		to_hash().to_json
+	end
 end
 
 CardSet.initialize
