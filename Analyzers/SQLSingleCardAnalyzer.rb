@@ -155,7 +155,7 @@ class SQLSingleCardAnalyzer < AnalyzerBase
 
 	def seprate_types_from_main(deck_data)
 		main_data = deck_data[Names::Categories[:main]]
-		Names::Categories.values.each { |category| deck_data[category] = {} }
+		[:mainMonster, :mainSpell, :mainTrap].each { |category| deck_data[Names::Categories[category]] = {} }
 		main_data.each do |id, data|
 			card                = Card[id]
 			name                = Names.CategoryFlagName "Main", card
