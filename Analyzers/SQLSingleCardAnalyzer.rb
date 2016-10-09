@@ -430,7 +430,7 @@ class SQLSingleCardAnalyzer < AnalyzerBase
 		arguments = type_arguments type, time
 		hash_data.each do |category, hash|
 			hash.each do |id, data|
-				add_data_to_sql arguments[:TableName], id, category, arguments[:TimeStr], arguments[:TimePeriod], source, data
+				add_data_to_sql arguments[:TableName], id, category, time, arguments[:TimePeriod], source, data
 			end
 		end
 	end
