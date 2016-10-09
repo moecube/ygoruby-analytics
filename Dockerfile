@@ -14,9 +14,11 @@ RUN bundle install
 COPY . /usr/src/app
 
 # 配置计划任务
-# 妈啊不会
 COPY ./crontab /etc/crontab
 RUN crontab /etc/crontab
 
+# 卡片数据库
+ADD https://mycard.moe/ygopro/cards.cdb Resources/cards.cdb
+
 # 启动
-CMD cron && ruby main.rb
+CMD cron && ruby -E UTF-8 main.rb
