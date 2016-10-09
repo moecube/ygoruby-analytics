@@ -83,12 +83,10 @@ module Analyzer
 	Analyzer.api.push "post", "/analyze/deck/text" do
 		# Temporary set for mercury 233
 		if request.body.length > 8192
-			[413, {}, "TOo big file"]
+			[413, {}, "Too big file"]
 		else
-			request.body.rewind
-			json = JSON.parse request.body.read
-			source = json["arena"]
-			deck_content = json["deck"]
+			source = params["arena"]
+			deck_content = params["deck"]
 			Analyzer.analyze Deck.load_ydk_str(deck_content), source: source
 			"Deck read"
 		end
