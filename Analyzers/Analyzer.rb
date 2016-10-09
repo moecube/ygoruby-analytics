@@ -101,14 +101,14 @@ module Analyzer
 	end
 
 	Analyzer.api.push "post", "/analyze/finish" do
-		logger.info "Finished from http request."
 		Analyzer.finish Time.now
-		"Finished"
+		logger.info "Finished from http request."
+		[200, {}, "Finished"]
 	end
 
 	Analyzer.api.push "delete", "/analyze" do
-		logger.info "Cleared from http request."
 		Analyzer.clear Time.now
 		"Cleared"
+		logger.info "Cleared from http request."
 	end
 end
