@@ -64,7 +64,7 @@ class SQLSingleCardAnalyzer < AnalyzerBase
 
 	def finish(*args)
 		push_cache_to_sql(@day_cache, Names::Day)
-		cache.clear
+		@day_cache.clear
 	end
 
 	def clear(*args)
