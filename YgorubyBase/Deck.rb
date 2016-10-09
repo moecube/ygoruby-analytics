@@ -90,6 +90,7 @@ class Deck
 
 	def accept_line(line)
 		return if line == nil or line == "" or line.start_with? "#"
+		line.strip!
 		if line == DECKFILE_MAIN_FLAG
 			@pointer = @main
 		elsif line == DECKFILE_EX_FLAG

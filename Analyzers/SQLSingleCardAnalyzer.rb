@@ -123,7 +123,8 @@ class SQLSingleCardAnalyzer < AnalyzerBase
 		manual = @config["Manual"]
 		hash   = args[0] || {}
 		source = hash[:source] || "Unknown"
-		source = Names::Sources[source.to_sym] || Names::Sources[:Unknown]
+		source = Names::Sources[source.to_sym]
+		source = Names::Sources[:unknown] if source == nil
 		time   = draw_time hash[:time]
 		if manual
 			add_deck_data_to_cache data, source, time
@@ -238,7 +239,7 @@ class SQLSingleCardAnalyzer < AnalyzerBase
 		}
 
 		Sources = {
-				atheletic:      "atheletic",
+				athletic:      "athletic",
 				entertainment: "entertainment",
 				handWritten:   "handwritten",
 				unknown:       "unknown"
@@ -334,7 +335,7 @@ class SQLSingleCardAnalyzer < AnalyzerBase
 				category varchar,
 				time date,
 				timePeriod integer default 1,
-				source varchar default 'Unknown',
+				source varchar default 'unknown',
         frequency integer default 0,
         numbers integer default 0,
         putOne integer default 0,
@@ -485,14 +486,14 @@ class SQLSingleCardAnalyzer < AnalyzerBase
 		execute_command command
 	end
 
-	# todo: fix it.
+# todo: fix it.
 	def union_season(from_type, time)
 		from_table_name = Names.TableName from_type
 		to_table_name   = Names.TableName Names::Season
 		time_end        = time.strftime Names::DatabaseTimeFormat
 		time_start      = Time.new(time.year, (time.month - 1) / 3 * 3 + 1, 1)
-		time_length = Names.TimePeriodLength Names::Season
-		command     = sprintf Commands::UnionCardCommand, from_table_name, to_table_name, time_start, time_end, time_length
+		time_length     = Names.TimePeriodLength Names::Season
+		command         = sprintf Commands::UnionCardCommand, from_table_name, to_table_name, time_start, time_end, time_length
 		execute_command command
 	end
 
@@ -522,8 +523,8 @@ class SQLSingleCardAnalyzer
 
 	def query_child(period = "", source = "", category = "")
 		period_str   = period
-		source_str   = Names::Sources[source.to_sym] || Names::Sources[:Unknown]
-		category_str = Names::Categories[category.to_sym] || Names::Categories[:Unknown]
+		source_str   = Names::Sources[source.to_sym] || Names::Sources[:unknown]
+		category_str = Names::Categories[category.to_sym] || Names::Categories[:unknown]
 		output if @last_result == nil
 		result = @last_result[period_str] || {}
 		result = result[source_str] || {}
