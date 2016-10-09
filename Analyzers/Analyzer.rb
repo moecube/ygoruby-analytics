@@ -2,6 +2,7 @@ require "#{File.dirname __FILE__}/AnalyzerBase.rb"
 require "#{File.dirname __FILE__}/AnalyzerHelp.rb"
 require "#{File.dirname __FILE__}/../Log.rb"
 require "#{File.dirname __FILE__}/../Helper.rb"
+require "#{File.dirname __FILE__}/../YgorubyBase/Deck.rb"
 
 module Analyzer
 	@@analyzers = {}
@@ -71,12 +72,26 @@ module Analyzer
 	Analyzer.api.push "post", "/analyze/deck/file" do
 		if request.body.length > 3072
 			[413, {}, "Too big file"]
+		else
+			request.body.rewind
+			source = params["source"]
+			Analyzer.analyze Deck.load_ydk_str(request.body.read), source: source
+			"Deck read"
 		end
-		request.body.rewind
-		source = params["source"]
-		require "#{File.dirname __FILE__}/../YgorubyBase/Deck.rb"
-		Analyzer.analyze Deck.load_ydk_str(request.body.read), source: source
-		"Deck read"
+	end
+
+	Analyzer.api.push "post", "/analyze/deck/text" do
+		# Temporary set for mercury 233
+		if request.body.length > 8192
+			[413, {}, "TOo big file"]
+		else
+			request.body.rewind
+			json = JSON.parse request.body.read
+			source = json["arena"]
+			deck_content = json["deck"]
+			Analyzer.analyze Deck.load_ydk_str(deck_content), source: source
+			"Deck read"
+		end
 	end
 
 	Analyzer.api.push "post", "/analyze/record" do

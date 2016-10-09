@@ -54,15 +54,12 @@
       "dayLabelName": "day-name",
       "weekLabelName": "week-name"
     },
-    "Server":
-    {
+    "Server": {
       "Port": 8080
     }
   },
-  "Plugins":
-  {
-    "DeckIdentifier":
-    {
+  "Plugins": {
+    "DeckIdentifier": {
       "Definitions": [
         "./Plugins/DeckIdentifier/Definition/"
       ]
