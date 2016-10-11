@@ -32,6 +32,11 @@ class SQLSingleCardAnalyzer < AnalyzerBase
 		end
 	end
 
+	def check_database_connection()
+		load_database if @sql == nil
+		@sql.reset if @sql.connect_poll == PG::Connection::PGRES_POLLING_FAILED
+	end
+
 	def execute_command(command)
 		begin
 			logger.debug "execute sql command:\n#{command}"
@@ -63,6 +68,7 @@ class SQLSingleCardAnalyzer < AnalyzerBase
 	end
 
 	def finish(*args)
+		check_database_connection
 		push_cache_to_sql(@day_cache, Names::Day)
 		@day_cache.clear
 	end
@@ -77,6 +83,7 @@ class SQLSingleCardAnalyzer < AnalyzerBase
 	end
 
 	def output(*args)
+		check_database_connection
 		time       = draw_time *args
 		periods    = [Names::Day, Names::Week, Names::HalfMonth, Names::Month, Names::Season]
 		categories = Names::Categories.values
@@ -429,6 +436,7 @@ class SQLSingleCardAnalyzer < AnalyzerBase
 	end
 
 	def add_deck_data_to_sql(hash_data, type, source, time)
+		check_database_connection
 		arguments = type_arguments type, time
 		hash_data.each do |category, hash|
 			hash.each do |id, data|
