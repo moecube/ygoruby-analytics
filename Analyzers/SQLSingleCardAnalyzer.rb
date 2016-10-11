@@ -34,7 +34,10 @@ class SQLSingleCardAnalyzer < AnalyzerBase
 
 	def check_database_connection()
 		load_database if @sql == nil
-		@sql.reset if @sql.connect_poll == PG::Connection::PGRES_POLLING_FAILED
+		if @sql.connect_poll == PG::Connection::PGRES_POLLING_FAILED
+			@sql.reset
+			logger.warn "Reseted SQL connection."
+		end
 	end
 
 	def execute_command(command)
