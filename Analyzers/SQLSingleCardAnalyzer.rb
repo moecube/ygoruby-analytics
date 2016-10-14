@@ -512,8 +512,6 @@ class SQLSingleCardAnalyzer < AnalyzerBase
 		arguments  = type_arguments type, time
 		table_name = arguments[:TableName]
 		time_flag  = arguments[:TimeStr]
-		source     = source.to_sym if source.is_a? String
-		source     = Names::Sources[source]
 		command    = sprintf Commands::SearchRankedCardCommand, table_name, category, time_flag, source, number
 		execute_command command
 	end
