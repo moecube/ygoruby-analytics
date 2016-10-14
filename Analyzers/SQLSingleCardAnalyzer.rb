@@ -535,10 +535,12 @@ class SQLSingleCardAnalyzer
 	def query_child(period = "", source = "", category = "")
 		period_str   = period
 		source_str   = Names::Sources[source.to_sym] || Names::Sources[:unknown]
-		category_str = Names::Categories[category.to_sym] || Names::Categories[:unknown]
+		category_str = Names::Categories[category.to_sym]
 		output if @last_result == nil
 		result = @last_result[period_str] || {}
+		return result if source_str == nil
 		result = result[source_str] || {}
+		return result if category_str == nil
 		result = result[category_str] || {}
 		result
 	end
