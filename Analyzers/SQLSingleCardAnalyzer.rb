@@ -249,8 +249,8 @@ class SQLSingleCardAnalyzer < AnalyzerBase
 		}
 
 		Sources = {
-				athletic:    "athletic",
-				entertain:   "entertainment",
+				atheletic:    "athletic",
+				entertainment:   "entertainment",
 				handWritten: "handwritten",
 				unknown:     "unknown"
 		}
