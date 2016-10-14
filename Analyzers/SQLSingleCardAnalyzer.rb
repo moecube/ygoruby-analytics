@@ -99,7 +99,7 @@ class SQLSingleCardAnalyzer < AnalyzerBase
 			for source in sources
 				hash = {}
 				for category in categories
-					hash[category] = translate_result_to_hash output_table period, category, time, number
+					hash[category] = translate_result_to_hash output_table period, category, source, time, number
 				end
 				period_hash[source] = hash
 			end
@@ -249,10 +249,10 @@ class SQLSingleCardAnalyzer < AnalyzerBase
 		}
 
 		Sources = {
-				athletic:      "athletic",
-				entertain:     "entertainment",
-				handWritten:   "handwritten",
-				unknown:       "unknown"
+				athletic:    "athletic",
+				entertain:   "entertainment",
+				handWritten: "handwritten",
+				unknown:     "unknown"
 		}
 
 		def self.CategoryFlagName(area, card)
@@ -371,7 +371,7 @@ class SQLSingleCardAnalyzer < AnalyzerBase
 		# [     1    ,     2   ,   3 ,   4   ,   5   ,  6  ]
 		# [Table Name, Category, Time, Source, Number, Page]
 		SearchRankedCardCommand = <<-Command
-			select * from %1$s where category = '%2$s' and time = '%3$s' order by frequency desc limit %4$s
+			select * from %1$s where category = '%2$s' and time = '%3$s' and source = '%4$s' order by frequency desc limit %5$s
 		Command
 
 		# [     1    ,   2 , 3 ]
@@ -508,11 +508,13 @@ class SQLSingleCardAnalyzer < AnalyzerBase
 		execute_command command
 	end
 
-	def output_table(type, category, time, number)
+	def output_table(type, category, source, time, number)
 		arguments  = type_arguments type, time
 		table_name = arguments[:TableName]
 		time_flag  = arguments[:TimeStr]
-		command    = sprintf Commands::SearchRankedCardCommand, table_name, category, time_flag, number
+		source     = source.to_sym if source.is_a? String
+		source     = Names::Sources[source]
+		command    = sprintf Commands::SearchRankedCardCommand, table_name, category, time_flag, source, number
 		execute_command command
 	end
 
