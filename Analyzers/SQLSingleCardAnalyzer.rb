@@ -94,12 +94,15 @@ class SQLSingleCardAnalyzer < AnalyzerBase
 		number     = @config["Output.Numbers"]
 		number     = 50 if number.nil?
 		result     = {}
+		logger.info "Start to output"
 		for period in periods
 			period_hash = {}
 			for source in sources
 				hash = {}
 				for category in categories
+					logger.info "Outputting [#{period}, #{source}, #{category}]"
 					hash[category] = translate_result_to_hash output_table period, category, source, time, number
+					logger.info "Set [#{period}, #{source}, #{category}]"
 				end
 				period_hash[source] = hash
 			end
