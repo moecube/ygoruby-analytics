@@ -27,7 +27,7 @@ module Outputs
 			end
 			
 			before do
-				logger.level = Logger::info
+				logger.level = Logger::INFO
 			end
 		end
 
