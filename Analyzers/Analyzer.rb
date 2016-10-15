@@ -30,6 +30,10 @@ module Analyzer
 		@@analyzers.values.each { |analyzer| analyzer.finish(*args) }
 	end
 
+	def self.[](index)
+		return @@analyzers[index]
+	end
+
 	def self.autoload
 		require "#{File.dirname __FILE__}/../Config.rb"
 		require "#{File.dirname __FILE__}/../Log.rb"
@@ -101,14 +105,16 @@ module Analyzer
 	end
 
 	Analyzer.api.push "post", "/analyze/finish" do
+		logger.info "Received finish request."
 		Analyzer.finish Time.now
 		logger.info "Finished from http request."
 		[200, {}, "Finished"]
 	end
 
 	Analyzer.api.push "delete", "/analyze" do
+		logger.info "Received clear request."
 		Analyzer.clear Time.now
-		"Cleared"
 		logger.info "Cleared from http request."
+		"Cleared"
 	end
 end

@@ -25,6 +25,10 @@ module Outputs
 			error 403 do
 				'refused'
 			end
+			
+			before do
+				logger.level = Logger::info
+			end
 		end
 
 		def self.start!

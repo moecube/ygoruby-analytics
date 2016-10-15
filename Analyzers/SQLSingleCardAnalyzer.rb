@@ -106,7 +106,7 @@ class SQLSingleCardAnalyzer < AnalyzerBase
 			result[period] = period_hash
 		end
 		@last_result = result
-		write_output_json result
+		# write_output_json result
 		result
 	end
 
@@ -536,7 +536,7 @@ class SQLSingleCardAnalyzer
 		period_str   = period
 		source_str   = Names::Sources[source.to_sym] || Names::Sources[:unknown]
 		category_str = Names::Categories[category.to_sym]
-		output if @last_result == nil
+		@last_result = [] if @last_result == nil
 		result = @last_result[period_str] || {}
 		return result if source_str == nil
 		result = result[source_str] || {}
