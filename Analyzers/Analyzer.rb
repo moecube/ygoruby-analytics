@@ -106,7 +106,16 @@ module Analyzer
 
 	Analyzer.api.push "post", "/analyze/finish" do
 		logger.info "Received finish request."
-		Analyzer.finish Time.now
+		time = parameters["time"]
+		case time
+			when nil
+				time = Time.now
+			when 'yesterday'
+				time = Time.now - 86400
+			when 'tomorrow'
+				time = Time.now + 86400
+		end
+		Analyzer.finish time
 		logger.info "Finished from http request."
 		[200, {}, "Finished"]
 	end

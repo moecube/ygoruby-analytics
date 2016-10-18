@@ -27,6 +27,7 @@
         "port": "5432"
       },
       "Manual": true,
+      "Multi": true,
       "Output": {
         "JsonName": "Data/SingleCardAnalysis.json",
         "Numbers": "50",
