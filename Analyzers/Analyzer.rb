@@ -122,7 +122,16 @@ module Analyzer
 
 	Analyzer.api.push "delete", "/analyze" do
 		logger.info "Received clear request."
-		Analyzer.clear Time.now
+		time = parameters["time"]
+		case time
+			when nil
+				time = Time.now
+			when 'yesterday'
+				time = Time.now - 86400
+			when 'tomorrow'
+				time = Time.now + 86400
+		end
+		Analyzer.clear time
 		logger.info "Cleared from http request."
 		"Cleared"
 	end
