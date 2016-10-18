@@ -498,10 +498,6 @@ class SQLSingleCardAnalyzer < AnalyzerBase
 		end
 	end
 	
-	def add_deck_data_to_sql_multi
-	
-	end
-	
 	def check_card_alias(id)
 		if Card.alias_list[id] != nil
 			logger.debug "alias set card [#{id}] to be [#{Card.alias_list[id]}]"
@@ -524,6 +520,10 @@ class SQLSingleCardAnalyzer < AnalyzerBase
 	end
 	
 	def add_multi_data_to_sql(table_name, card_datas)
+		if card_datas == []
+			logger.warn "No data in the pool to update."
+			return
+		end
 		values  = card_datas.map { |card_data| sprintf Commands::CardValueForMultiCommand, *card_data }
 		value   = values.join Commands::CardValueJoinner
 		command = sprintf Commands::UpdateMultiCardCommand, table_name, value
