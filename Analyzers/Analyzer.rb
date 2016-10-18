@@ -106,7 +106,7 @@ module Analyzer
 
 	Analyzer.api.push "post", "/analyze/finish" do
 		logger.info "Received finish request."
-		time = parameters["time"]
+		time = params["time"]
 		case time
 			when nil
 				time = Time.now
@@ -122,7 +122,7 @@ module Analyzer
 
 	Analyzer.api.push "delete", "/analyze" do
 		logger.info "Received clear request."
-		time = parameters["time"]
+		time = params["time"]
 		case time
 			when nil
 				time = Time.now
