@@ -2,6 +2,6 @@
 */5 * * * * curl -d "" "http://127.0.0.1:8080/analyze/finish"
 # 每天结束时，计算各天的数据并离开
 # 每天开始时，强制缓存（不然第一个用户会特别慢）
-58 23 * * * curl -X DELETE "http://127.0.0.1:8080/analyze"; curl --connect-timeout 1 "http://127.0.0.1:8080/analyze/single"
+58 15 * * * curl -X DELETE "http://127.0.0.1:8080/analyze"; curl --connect-timeout 1 "http://127.0.0.1:8080/analyze/single"
 # Test
 # */1 * * * * echo "hello" >> /tmp/log
