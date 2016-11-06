@@ -29,6 +29,10 @@ module Analyzer
 	def self.finish(*args)
 		@@analyzers.values.each { |analyzer| analyzer.finish(*args) }
 	end
+	
+	def self.heartbeat(*args)
+		@@analyzers.values.each { |analyzer| analyzer.heartbeat(*args) }
+	end
 
 	def self.[](index)
 		return @@analyzers[index]
@@ -107,14 +111,6 @@ module Analyzer
 	Analyzer.api.push "post", "/analyze/finish" do
 		logger.info "Received finish request."
 		time = params["time"]
-		case time
-			when nil
-				time = Time.now
-			when 'yesterday'
-				time = Time.now - 86400
-			when 'tomorrow'
-				time = Time.now + 86400
-		end
 		Analyzer.finish time
 		logger.info "Finished from http request."
 		[200, {}, "Finished"]
@@ -123,16 +119,24 @@ module Analyzer
 	Analyzer.api.push "delete", "/analyze" do
 		logger.info "Received clear request."
 		time = params["time"]
-		case time
-			when nil
-				time = Time.now
-			when 'yesterday'
-				time = Time.now - 86400
-			when 'tomorrow'
-				time = Time.now + 86400
-		end
 		Analyzer.clear time
 		logger.info "Cleared from http request."
 		"Cleared"
+	end
+	
+	Analyzer.api.push "get", "/analyze/heartbeat" do
+		logger.info "Received heartbeat."
+		time = params["time"]
+		# ATTENTION!!!! NEW THREAD HERE.
+		if $analyzer_heartbeat_thread == nil
+			$analyzer_heartbeat_thread = Thread.new do
+				Analyzer.heartbeat time
+				$analyzer_heartbeat_thread = nil
+				logger.info "Heart beat finished."
+			end
+			"Beating."
+		else
+			[403, {}, "A heart is beating."]
+		end
 	end
 end

@@ -1,9 +1,6 @@
 # 手动模式下，每两分钟把缓存存进数据库
 */5 * * * * curl -d "" "http://127.0.0.1:8080/analyze/finish"
-# 每天结束时，计算各天的数据并离开
-# 这个操作谜之慢
-50 23 * * * curl -X DELETE "http://127.0.0.1:8080/analyze"
-# 每天开始时，强制缓存（不然第一个用户会特别慢）
-59 23 * * * curl --connect-timeout 1 "http://127.0.0.1:8080/analyze/single"
+# 心跳
+59 23 * * * curl "http://127.0.0.1:8080/analyze/heartbeat"
 # Test
 # */1 * * * * echo "hello" >> /tmp/log

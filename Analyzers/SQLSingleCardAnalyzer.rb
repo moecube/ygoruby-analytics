@@ -82,15 +82,14 @@ class SQLSingleCardAnalyzer < AnalyzerBase
 		union_table Names::Day, Names::HalfMonth, time
 		union_table Names::Day, Names::Month, time
 		union_season Names::Day, time
-		@last_result = nil
 	end
 	
 	def output(*args)
 		check_database_connection
 		time       = draw_time *args
 		periods    = [Names::Day, Names::Week, Names::HalfMonth, Names::Month, Names::Season]
-		categories = Names::Categories.values
-		sources    = Names::Sources.values
+		categories = Names::Categories.values - [Names::Categories[:unknown]]
+		sources    = Names::Sources.values - [Names::Categories[:unknown]]
 		number     = @config["Output.Numbers"]
 		number     = 50 if number.nil?
 		result     = {}
@@ -101,7 +100,11 @@ class SQLSingleCardAnalyzer < AnalyzerBase
 				hash = {}
 				for category in categories
 					logger.info "Outputting [#{period}, #{source}, #{category}]"
-					hash[category] = translate_result_to_hash output_table period, category, source, time, number
+					begin
+						hash[category] = translate_result_to_hash output_table period, category, source, time, number
+					rescue => ex
+						logger.warn ex
+					end
 					logger.info "Set [#{period}, #{source}, #{category}]"
 				end
 				period_hash[source] = hash
@@ -113,11 +116,31 @@ class SQLSingleCardAnalyzer < AnalyzerBase
 		result
 	end
 	
+	def heartbeat(*args)
+		time = draw_time *args
+		logger.info "Going to clear"
+		clear time
+		logger.info "Going to Output"
+		output time
+		logger.info "Going to Return"
+		nil
+	end
+	
 	def draw_time(*args)
 		time = args[0]
 		time = Time.now if time == nil
 		time = Time.at time if time.is_a? Fixnum
-		time = Time.gm *time.split("-") if time.is_a? String
+		if time.is_a? String
+			if time == 'yesterday'
+					time = Time.now - 86400
+			elsif time == 'tomorrow'
+					time = Time.now + 86400
+			elsif time == 'now' or time == 'today'
+				time = Time.now
+			else
+					time = Time.gm *time.split("-")
+			end
+		end
 		if time.is_a? Time
 			# do nothing
 		elsif time == args[0]
@@ -605,7 +628,6 @@ end
 # Server API
 class SQLSingleCardAnalyzer
 	def query_summary
-		output if @last_result == nil
 		@last_result
 	end
 	
