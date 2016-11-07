@@ -124,6 +124,9 @@ module Analyzer
 		"Cleared"
 	end
 	
+	# ATTENTION!!! For Test
+	Thread.abort_on_exception = true
+	
 	Analyzer.api.push "get", "/analyze/heartbeat" do
 		logger.info "Received heartbeat."
 		time = params["time"]
@@ -136,7 +139,9 @@ module Analyzer
 			end
 			"Beating."
 		else
-			[403, {}, "A heart is beating."]
+			logger.fatal "Heartbeat thread doesn't work fine. Killed."
+			Thread.kill $analyzer_heartbeat_thread
+			[403, {}, "A heart is beating. Killed it."]
 		end
 	end
 end
