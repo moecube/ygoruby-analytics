@@ -141,6 +141,7 @@ module Analyzer
 		else
 			logger.fatal "Heartbeat thread doesn't work fine. Killed."
 			Thread.kill $analyzer_heartbeat_thread
+			$analyzer_heartbeat_thread = nil
 			[403, {}, "A heart is beating. Killed it."]
 		end
 	end
