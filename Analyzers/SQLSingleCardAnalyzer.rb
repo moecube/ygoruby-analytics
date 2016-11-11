@@ -642,8 +642,8 @@ class SQLSingleCardAnalyzer
 		# Attention!!! Temp check
 		for category in result.keys
 			if result[category] == nil or result[category] == {} or result[category] == []
-				logger.warn "Found #{period_str}-#{source_str}-#{category_str} is empty. Try to refill it."
-				refill_empty_answer period_str, source_str, category_str
+				logger.warn "Found #{period_str}-#{source_str}-#{category} is empty. Try to refill it."
+				refill_empty_answer period_str, source_str, category
 			end
 		end
 		return result if category_str == nil
