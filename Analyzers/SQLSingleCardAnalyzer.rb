@@ -88,7 +88,7 @@ class SQLSingleCardAnalyzer < AnalyzerBase
 		check_database_connection
 		time       = draw_time *args
 		periods    = [Names::Day, Names::Week, Names::HalfMonth, Names::Month, Names::Season]
-		categories = Names::Categories.values - [Names::Categories[:unknown]]
+		categories = Names::Categories.values - [Names::Categories[:unknown], Names::Categories[:main]]
 		sources    = Names::Sources.values - [Names::Categories[:unknown]]
 		number     = @config["Output.Numbers"]
 		number     = 50 if number.nil?
@@ -639,9 +639,46 @@ class SQLSingleCardAnalyzer
 		result       = @last_result[period_str] || {}
 		return result if source_str == nil
 		result = result[source_str] || {}
+		# Attention!!! Temp check
+		for category in result.keys
+			if result[category] == nil or result[category] == {} or result[category] == []
+				logger.warn "Found #{period_str}-#{source_str}-#{category_str} is empty. Try to refill it."
+				refill_empty_answer period_str, source_str, category_str
+			end
+		end
 		return result if category_str == nil
 		result = result[category_str] || {}
 		result
+	end
+	
+	@@recheck_answers = []
+	@@recheck_thread = nil
+	def refill_empty_answer(period_str, source_str, category_str)
+		@@recheck_answers.push [period_str, source_str, category_str]
+		@@recheck_thread = Thread.new { refill_thread_do } if @@recheck_thread == nil
+	end
+	
+	def refill_thread_do
+		while @@recheck_answers.count > 0
+			fill_path = @@recheck_answers.pop
+			refill_empty_answer_do *fill_path
+		end
+		@@recheck_thread = nil
+	end
+	
+	def refill_empty_answer_do(period_str, source_str, category_str)
+		check_database_connection
+		answer = translate_result_to_hash output_table period_str, category_str, source_str, time, number
+		if answer == {} or answer == nil
+			logger.warn "Refill failed for #{period_str}-#{source_str}-#{category_str}"
+			return
+		end
+		target = @last_result
+		target[period_str] = {} if target[period_str] = nil
+		target = target[period_str]
+		target[source_str] = {} if target[source_str] = nil
+		target = target[source_str]
+		target[category_str] = answer
 	end
 	
 	def query_card(card = 0, type = "", time = nil)
