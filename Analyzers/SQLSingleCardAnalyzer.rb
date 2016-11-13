@@ -147,7 +147,9 @@ class SQLSingleCardAnalyzer < AnalyzerBase
 			logger.warn "Unrecognized time arg #{args}. Returned Time.now"
 			time = Time.now
 		end
-		time
+		# 东八区和格林威治时间的换算。
+		# 观察是否必要。
+		time + 28800
 	end
 	
 	def analyze_replay(replay, *args)
@@ -668,7 +670,8 @@ class SQLSingleCardAnalyzer
 	
 	def refill_empty_answer_do(period_str, source_str, category_str)
 		check_database_connection
-		answer = translate_result_to_hash output_table period_str, category_str, source_str, time, number
+		# Temp set time to yesterday. Attention!
+		answer = translate_result_to_hash output_table period_str, category_str, source_str, draw_time('yesterday'), number
 		if answer == {} or answer == nil
 			logger.warn "Refill failed for #{period_str}-#{source_str}-#{category_str}"
 			return
