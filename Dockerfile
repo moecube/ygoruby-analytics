@@ -18,7 +18,7 @@ COPY ./crontab /etc/crontab
 RUN crontab /etc/crontab
 
 # 卡片数据库
-ADD https://mycard.moe/ygopro/cards.cdb Resources/cards.cdb
+# ADD https://mycard.moe/ygopro/cards.cdb Resources/cards.cdb
 
 # 启动
 CMD cron && ruby -E UTF-8 main.rb

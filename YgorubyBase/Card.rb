@@ -33,7 +33,12 @@ class Card
 
 
 	def self.open_database
-		@@database = SQLite3::Database.new $config["CardDatabase"]
+		@@database_keys = $config["YgorubyBase.CardDatabase"]
+		@@databases = {}
+		for key in @@database_keys.keys
+			@@databases[key] = SQLite3::Database.new @@database_keys[key]
+		end
+		@@database = @@databases.values[0]
 	end
 
 	def self.database
@@ -41,9 +46,10 @@ class Card
 		@@database
 	end
 
-	def self.execute_command(command)
+	def self.execute_command(command, database = nil)
 		self.open_database if !defined? @@database
-		@@database.execute command
+		database = @@database if database == nil
+		database.execute command
 	end
 
 	RACE_WARRIOR       = 1
@@ -288,6 +294,7 @@ class Card
 	NameQueryCommand     = "select * from datas, texts on datas.id == texts.id where texts.name == '%s'"
 	NameLikeQueryCommand = "select * from datas, texts on datas.id == texts.id where texts.name like '%%%s%%'"
 	AliasQueryCommand    = "select id, alias from datas where alias > 0"
+	QueryNameFromIDCommand = "select name from texts where id == '%d'"
 	PendulumMagicNumber  = 256
 
 	def read_sqlite_data(id)
@@ -339,6 +346,7 @@ class Card
 		@category    = data[10]
 		@name        = data[12]
 		@desc        = data[13]
+		Card.load_help_names self
 	end
 
 	@@types.each do |type_name|
@@ -440,5 +448,21 @@ class Card
 	def self.alias_list
 		self.load_alias_list unless class_variable_defined?("@@alias_list")
 		@@alias_list
+	end
+	
+	def self.load_help_names(card)
+		id = card.id
+		@@databases.keys.each do |key|
+			if card.name.is_a? String
+				card.name = { key => card.name }
+			else
+				card.name[key] = self.query_help_name @@databases[key], id
+			end
+		end
+	end
+	
+	def self.query_help_name(database, id)
+		answer = self.execute_command sprintf(QueryNameFromIDCommand, id), database
+		answer[0][0]
 	end
 end

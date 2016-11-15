@@ -1,7 +1,14 @@
 {
-  "CardDatabase": "Resources/ygopro-database/cards.zh-CN.cdb",
-  "Strings": "Resources/ygopro-database/strings.zh-CN.conf",
   "YgorubyBase": {
+    "CardDatabase": {
+      "zh-CN": "Resources/ygopro-database/locales/zh-CN/cards.cdb",
+      "en-US": "Resources/ygopro-database/locales/en-US/cards.cdb",
+      "ja-JP": "Resources/ygopro-database/locales/ja-JP/cards.cdb"
+    },
+    "Strings":
+    {
+      "zh-CN": "Resources/ygopro-database/locales/zh-CN/strings.conf"
+    }
   },
   "Analyzers": {
     "Analyzer": [
@@ -33,7 +40,6 @@
         "Numbers": "50",
         "ExtraMessage": [
           "name",
-          "main_type_desc"
         ]
       }
     }

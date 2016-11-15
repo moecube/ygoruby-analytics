@@ -118,11 +118,8 @@ class SQLSingleCardAnalyzer < AnalyzerBase
 	
 	def heartbeat(*args)
 		time = draw_time *args
-		logger.info "Going to clear"
 		clear time
-		logger.info "Going to Output"
 		output time
-		logger.info "Going to Return"
 		nil
 	end
 	
