@@ -33,7 +33,10 @@ class SQLSingleCardAnalyzer < AnalyzerBase
 	end
 	
 	def check_database_connection()
-		load_database if @sql == nil
+		if @sql == nil
+			load_database
+			logger.fatal("DATABASE RELOADED")
+		end
 		if @sql.connect_poll == PG::Connection::PGRES_POLLING_FAILED
 			@sql.reset
 			logger.warn "Reseted SQL connection."
@@ -89,7 +92,7 @@ class SQLSingleCardAnalyzer < AnalyzerBase
 		time       = draw_time *args
 		periods    = [Names::Day, Names::Week, Names::HalfMonth, Names::Month, Names::Season]
 		categories = Names::Categories.values - [Names::Categories[:unknown], Names::Categories[:main]]
-		sources    = Names::Sources.values - [Names::Categories[:unknown]]
+		sources    = Names::Sources.values - [Names::Sources[:unknown], Names::Sources[:handWritten]]
 		number     = @config["Output.Numbers"]
 		number     = 50 if number.nil?
 		result     = {}
@@ -105,7 +108,7 @@ class SQLSingleCardAnalyzer < AnalyzerBase
 					rescue => ex
 						logger.warn ex
 					end
-					logger.info "Set [#{period}, #{source}, #{category}]"
+					logger.info "Set [#{period}, #{source}, #{category}] Length: #{hash[category].length}"
 				end
 				period_hash[source] = hash
 			end
@@ -656,7 +659,7 @@ class SQLSingleCardAnalyzer
 	end
 	
 	def refill_thread_do
-		while @@recheck_answers.count > 0
+		 while @@recheck_answers.count > 0
 			fill_path = @@recheck_answers.pop
 			refill_empty_answer_do *fill_path
 		end
@@ -732,4 +735,9 @@ Analyzer.api.push "get", "/analyze/single/card" do
 	content = content.to_json
 	content_type 'application/json'
 	content
+end
+
+Analyzer.api.push "get", "/analyze/single/test" do
+	data = analyzer.query_summary
+	data.inspect
 end
