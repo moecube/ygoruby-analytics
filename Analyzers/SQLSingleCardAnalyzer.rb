@@ -205,6 +205,7 @@ class SQLSingleCardAnalyzer < AnalyzerBase
 			logger.warn "try to translate a pg_result: nil"
 			return {}
 		end
+		logger.error pg_result.inspect
 		pg_result.map { |piece| add_extra_message(piece); piece }
 	end
 	

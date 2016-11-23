@@ -463,6 +463,7 @@ class Card
 	
 	def self.query_help_name(database, id)
 		answer = self.execute_command sprintf(QueryNameFromIDCommand, id), database
+		return '??' if answer.length == 0
 		answer[0][0]
 	end
 end
