@@ -97,6 +97,7 @@ class SQLSingleCardAnalyzer < AnalyzerBase
 		number     = 50 if number.nil?
 		result     = {}
 		logger.info "Start to output"
+		@isOutputting = true
 		for period in periods
 			period_hash = {}
 			for source in sources
@@ -114,6 +115,7 @@ class SQLSingleCardAnalyzer < AnalyzerBase
 			end
 			result[period] = period_hash
 		end
+		@isOutputting = false
 		@last_result = result
 		# write_output_json result
 		result
@@ -470,6 +472,7 @@ class SQLSingleCardAnalyzer < AnalyzerBase
 	end
 	
 	def create_caches
+		@isOutputting = false
 		@day_cache = Cache.new
 	end
 	
@@ -555,6 +558,10 @@ class SQLSingleCardAnalyzer < AnalyzerBase
 	end
 	
 	def push_cache_to_sql(cache, type)
+		if @isOutputting
+			logger.warn "It's outputt fetching. Finish request is refused."
+			return
+		end
 		multi = @config["Multi"]
 		if multi
 			push_cache_to_sql_multi cache, type
