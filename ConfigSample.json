@@ -17,8 +17,6 @@
     "Output:": [
       "Server"
     ],
-    "HTMLGenerator": {
-    },
     "Server": {
       "Port": 8080
     }
