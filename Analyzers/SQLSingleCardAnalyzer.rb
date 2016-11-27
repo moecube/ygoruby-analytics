@@ -174,7 +174,7 @@ class SQLSingleCardAnalyzer < AnalyzerBase
 	#==============================================
 	def heartbeat(*args)
 		time = draw_time *args
-		# clear time
+		clear time
 		output time
 		nil
 	end

@@ -1,3 +1,4 @@
+Thread.abort_on_exception = true
 require "#{File.dirname __FILE__}/Analyzers/Analyzer.rb"
 Analyzer.autoload
 

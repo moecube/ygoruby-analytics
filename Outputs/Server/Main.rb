@@ -38,5 +38,14 @@ module Outputs
 		@@config = $config["Outputs.Server"]
 		self.port = @@config["Port"].to_i if @@config["Port"] != @@config
 		self.bind = @@config["Bind"].to_i if @@config["Bind"] != @@config
+		
+	end
+	
+	def self.authorize_check(req)
+		key = $config["Access Key"]
+		return true if key == nil
+		user_key = req["accesskey"]
+		return false if user_key == nil
+		key == user_key
 	end
 end
