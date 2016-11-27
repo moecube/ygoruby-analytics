@@ -30,12 +30,14 @@ class SQLSingleCardAnalyzer < AnalyzerBase
 			logger.error "Failed to connect to sql. Message:"
 			logger.error exception
 		end
+		# Database operation Mutex.
+		@database_mutex = Mutex.new
 	end
 	
 	def check_database_connection()
 		if @sql == nil
 			load_database
-			logger.fatal("DATABASE RELOADED")
+			logger.fatal("Database is reloaded during connection check. Make sure database connection is fine.")
 		end
 		if @sql.connect_poll == PG::Connection::PGRES_POLLING_FAILED
 			@sql.reset
@@ -44,25 +46,38 @@ class SQLSingleCardAnalyzer < AnalyzerBase
 	end
 	
 	def execute_command(command)
-		begin
-			logger.debug "execute sql command:\n#{command}"
-			@sql.exec command
-		rescue => exception
-			logger.error "error while running command. Message:"
-			logger.error "\n" + exception.to_s
-		end
+		@database_mutex.synchronize {
+			begin
+				logger.debug "execute sql command:\n#{command}"
+				@sql.exec command
+			rescue => exception
+				logger.error "error while running command. Message:"
+				logger.error "\n" + exception.to_s
+			end
+		}
 	end
 	
 	def execute_commands(commands)
-		begin
-			logger.debug "execute sql commands:"
-			commands.map { |command| logger.debug(command); @sql.exec command }
-		rescue => exception
-			logger.error "error while running commands. Message:"
-			logger.error "\n" + exception.to_s
-		end
+		@database_mutex.synchronize {
+			begin
+				logger.debug "execute sql commands:"
+				commands.map { |command| logger.debug(command); @sql.exec command }
+			rescue => exception
+				logger.error "error while running commands. Message:"
+				logger.error "\n" + exception.to_s
+			end
+		}
 	end
 	
+	#region Basic I/O parts
+	
+	#==============================================
+	# Analyze
+	#----------------------------------------------
+	# basic I/O interface
+	# set the analyzed data to database.
+	# @obj:
+	#==============================================
 	def analyze(obj, *args)
 		if obj.is_a? Replay
 			analyze_replay obj, *args
@@ -73,12 +88,26 @@ class SQLSingleCardAnalyzer < AnalyzerBase
 		end
 	end
 	
+	#==============================================
+	# Finish
+	#----------------------------------------------
+	# basic I/O interface
+	# add the saving cache to the real database.
+	#==============================================
 	def finish(*args)
 		check_database_connection
 		push_cache_to_sql(@day_cache, Names::Day)
 		@day_cache.clear
 	end
 	
+	#==============================================
+	# Clear
+	#----------------------------------------------
+	# basic I/O interface
+	# clear all the data from now.
+	# In @SQLSingleCardAnalyzer, only calculate the
+	# last numbers.
+	#==============================================
 	def clear(*args)
 		time = draw_time *args
 		union_table Names::Day, Names::Week, time
@@ -87,6 +116,12 @@ class SQLSingleCardAnalyzer < AnalyzerBase
 		union_season Names::Day, time
 	end
 	
+	#==============================================
+	# Output
+	#----------------------------------------------
+	# basic I/O interface
+	# output the data to the set output port.
+	#==============================================
 	def output(*args)
 		check_database_connection
 		time       = draw_time *args
@@ -97,30 +132,34 @@ class SQLSingleCardAnalyzer < AnalyzerBase
 		number     = 50 if number.nil?
 		result     = {}
 		logger.info "Start to output"
-		@isOutputting = true
 		for period in periods
 			period_hash = {}
 			for source in sources
-				hash = {}
+				source_hash = {}
 				for category in categories
-					logger.info "Outputting [#{period}, #{source}, #{category}]"
 					begin
-						hash[category] = translate_result_to_hash output_table period, category, source, time, number
+						source_hash[category] = translate_result_to_hash output_table period, category, source, time, number
 					rescue => ex
 						logger.warn ex
 					end
-					logger.info "Set [#{period}, #{source}, #{category}] Length: #{hash[category].length}"
+					logger.info "Set [#{period}, #{source}, #{category}] Length: #{source_hash[category].length}"
+					source_hash[category] = source_hash[category]
 				end
-				period_hash[source] = hash
+				period_hash[source] = source_hash
 			end
 			result[period] = period_hash
 		end
-		@isOutputting = false
 		@last_result = result
 		# write_output_json result
 		result
 	end
 	
+	#==============================================
+	# Heartbeat
+	#----------------------------------------------
+	# basic I/O interface
+	# active the daily work.
+	#==============================================
 	def heartbeat(*args)
 		time = draw_time *args
 		clear time
@@ -128,19 +167,28 @@ class SQLSingleCardAnalyzer < AnalyzerBase
 		nil
 	end
 	
+	#endregion
+	
+	#==============================================
+	# draw_time
+	#----------------------------------------------
+	# helper
+	# draw the time argument from *args.
+	#==============================================
 	def draw_time(*args)
 		time = args[0]
 		time = Time.now if time == nil
 		time = Time.at time if time.is_a? Fixnum
 		if time.is_a? String
+			time = time.downcase
 			if time == 'yesterday'
-					time = Time.now - 86400
+				time = Time.now - 86400
 			elsif time == 'tomorrow'
-					time = Time.now + 86400
+				time = Time.now + 86400
 			elsif time == 'now' or time == 'today'
 				time = Time.now
 			else
-					time = Time.gm *time.split("-")
+				time = Time.gm *time.split("-")
 			end
 		end
 		if time.is_a? Time
@@ -207,6 +255,9 @@ class SQLSingleCardAnalyzer < AnalyzerBase
 			logger.warn "try to translate a pg_result: nil"
 			return {}
 		end
+		if pg_result.status != PG::PGRES_TUPLES_OK
+			logger.error "try to translate a not tuples result. #{pg_result}"
+		end
 		pg_result.map { |piece| add_extra_message(piece); piece }
 	end
 	
@@ -254,12 +305,6 @@ class SQLSingleCardAnalyzer < AnalyzerBase
 		Season    = "season"
 		
 		DatabaseTimeFormat = "%Y-%m-%d"
-		
-		# 已弃用
-		DayFlag            = "%Y-%m-%d"
-		WeekFlag           = "%Y-%m-%d-7" # 最近 7 天
-		HalfMonthFlag      = "%Y-%m-%d-15" # 最近 15 天
-		MonthFlag          = "%Y-%m-%d-30" # 最近 30 天
 		
 		DayTimePeriod       = 1
 		WeekTimePeriod      = 7
@@ -424,10 +469,10 @@ class SQLSingleCardAnalyzer < AnalyzerBase
 			select * from %1$s where category = '%2$s' and time = '%3$s' and source = '%4$s' order by frequency desc limit %5$s
 		Command
 		
-		# [     1    ,   2 , 3 ]
-		# [Table Name, Time, ID]
+		# [     1    ,  2,    3    ,  4  ,   5   ]
+		# [Table Name, ID，Category, Time, Source]
 		SearchCardCommand = <<-Command
-			select * from %1$s where time = '%2$s' and id = %3$s
+			select * from %1$s where id = %2$s and category = '%3$s' and time = '%4$s' and source = '%5$s'
 		Command
 		
 		# [        1      ,        2     ,     3    ,    4   ,      5    ]
@@ -450,6 +495,7 @@ class SQLSingleCardAnalyzer < AnalyzerBase
 		
 		def initialize
 			@cache = {}
+			@count = {}
 		end
 		
 		def clear
@@ -459,6 +505,8 @@ class SQLSingleCardAnalyzer < AnalyzerBase
 		def add(card_environment, data)
 			@cache[card_environment] = [0, 0, 0, 0, 0] if self.cache[card_environment] == nil
 			(0..4).each { |i| @cache[card_environment][i] += data[i] }
+			@count[card_environment] = [0, 0, 0, 0, 0] if self.cache[card_environment] == nil
+			@card[card_environment]  += 1
 		end
 	end
 	
@@ -471,7 +519,6 @@ class SQLSingleCardAnalyzer < AnalyzerBase
 	end
 	
 	def create_caches
-		@isOutputting = false
 		@day_cache = Cache.new
 	end
 	
@@ -557,10 +604,6 @@ class SQLSingleCardAnalyzer < AnalyzerBase
 	end
 	
 	def push_cache_to_sql(cache, type)
-		if @isOutputting
-			logger.warn "It's outputt fetching. Finish request is refused."
-			return
-		end
 		multi = @config["Multi"]
 		if multi
 			push_cache_to_sql_multi cache, type
@@ -603,8 +646,7 @@ class SQLSingleCardAnalyzer < AnalyzerBase
 		command    = sprintf Commands::UnionCardCommand, from_table_name, to_table_name, time_start, time_end, time_length
 		execute_command command
 	end
-
-# todo: fix it.
+	
 	def union_season(from_type, time)
 		from_table_name = Names.TableName from_type
 		to_table_name   = Names.TableName Names::Season
@@ -623,16 +665,19 @@ class SQLSingleCardAnalyzer < AnalyzerBase
 		execute_command command
 	end
 	
-	def output_card(type, time, id)
-		arguments  = type_arguments type, time
-		table_name = arguments[:TableName]
-		time_flag  = arguments[:TimeStr]
-		command    = sprintf Commands::SearchCardCommand, table_name, time_flag, id
+	def output_card(type, source, category, time, id)
+		arguments    = type_arguments type, time
+		table_name   = arguments[:TableName]
+		time_flag    = arguments[:TimeStr]
+		source_str   = Names::Sources[source.to_sym]
+		category_str = Names::Categories[category.to_sym]
+		# Table Name, ID，Category, Time, Source
+		command      = sprintf Commands::SearchCardCommand, table_name, id.to_s, category_str, time_flag, source_str
 		execute_command command
 	end
 end
 
-# Server API
+#region Server APIs
 class SQLSingleCardAnalyzer
 	def query_summary
 		@last_result
@@ -646,56 +691,14 @@ class SQLSingleCardAnalyzer
 		result       = @last_result[period_str] || {}
 		return result if source_str == nil
 		result = result[source_str] || {}
-		# Attention!!! Temp check
-		for category in result.keys
-			if result[category] == nil or result[category] == {} or result[category] == []
-				logger.warn "Found #{period_str}-#{source_str}-#{category} is empty. Try to refill it."
-				refill_empty_answer period_str, source_str, category
-			end
-		end
-		return result if category_str == nil
 		result = result[category_str] || {}
-		result
+		result.to_json
 	end
 	
-	@@recheck_answers = []
-	@@recheck_thread = nil
-	def refill_empty_answer(period_str, source_str, category_str)
-		@@recheck_answers.push [period_str, source_str, category_str]
-		@@recheck_thread = Thread.new { refill_thread_do } if @@recheck_thread == nil
-	end
-	
-	def refill_thread_do
-		 while @@recheck_answers.count > 0
-			fill_path = @@recheck_answers.pop
-			refill_empty_answer_do *fill_path
-		end
-		@@recheck_thread = nil
-	end
-	
-	def refill_empty_answer_do(period_str, source_str, category_str)
-		check_database_connection
-		# Temp set time to yesterday. Attention!
-		number     = @config["Output.Numbers"]
-		number     = 50 if number.nil?
-		answer = translate_result_to_hash output_table period_str, category_str, source_str, draw_time('yesterday'), number
-		if answer == {} or answer == nil
-			logger.warn "Refill failed for #{period_str}-#{source_str}-#{category_str}"
-			return
-		end
-		target = @last_result
-		target[period_str] = {} if target[period_str] = nil
-		target = target[period_str]
-		target[source_str] = {} if target[source_str] = nil
-		target = target[source_str]
-		target[category_str] = answer
-	end
-	
-	def query_card(card = 0, type = "", time = nil)
+	def query_card(card = 0, type = "", source = "", category = "", time = nil)
 		time   = draw_time time
 		card   = check_id_str card.to_s
-		type   = check_legal_str type
-		result = output_card type, time, card
+		result = output_card type, source, category, time, card
 		result = translate_result_to_hash result
 		result
 	end
@@ -714,14 +717,33 @@ class SQLSingleCardAnalyzer
 	end
 end
 
+#endregion
+
 analyzer = SQLSingleCardAnalyzer.new
 Analyzer.push analyzer
+
+#region Interfaces
+#==================================
+# GET /single
+#----------------------------------
+# direct return all the cache.
+#==================================
 Analyzer.api.push "get", "/analyze/single" do
 	content = analyzer.query_summary.to_json
 	content_type 'application/json'
 	content
 end
 
+#==================================
+# PUSH /single/type
+#----------------------------------
+# given
+# * parameter: type
+# * parameter: category
+# * parameter: source
+# return
+# + [cards]
+#==================================
 Analyzer.api.push "get", "/analyze/single/type" do
 	type     = params["type"] || ""
 	category = params["category"] || ""
@@ -733,12 +755,25 @@ Analyzer.api.push "get", "/analyze/single/type" do
 	content
 end
 
+#==================================
+# PUSH /single/card
+#----------------------------------
+# given
+# * type
+# * category
+# * source
+# * card id
+# return
+# + [card]
+#==================================
 Analyzer.api.push "get", "/analyze/single/card" do
-	type = params["type"] || ""
-	time = params["time"]
-	card = params["card"] || 0
+	type     = params["type"] || ""
+	category = paramas["category"] || ""
+	source   = params["source"] || ""
+	time     = params["time"]
+	card     = params["card"] || 0
 	
-	content = analyzer.query_card card, type, time
+	content = analyzer.query_card card, type, source, category, time
 	content = content.to_json
 	content_type 'application/json'
 	content
@@ -748,3 +783,4 @@ Analyzer.api.push "get", "/analyze/single/test" do
 	data = analyzer.query_summary
 	data.inspect
 end
+#endregion

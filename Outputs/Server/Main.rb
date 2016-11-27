@@ -2,9 +2,8 @@ require 'sinatra'
 require 'sinatra/base'
 require "#{File.dirname __FILE__}/../../Config.rb"
 
-$main = self
-
 module Outputs
+	
 	class SinatraServer < Sinatra::Application
 		def self.require_api(api)
 			case api[0]
