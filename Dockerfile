@@ -14,7 +14,7 @@ RUN bundle install
 COPY . /usr/src/app
 
 # 设置时区
-cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
+RUN cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
 
 # 配置计划任务
 COPY ./crontab /etc/crontab
