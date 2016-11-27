@@ -10,6 +10,7 @@ class SQLSingleCardAnalyzer < AnalyzerBase
 	def initialize
 		load_database
 		load_commands
+		load_names
 		create_tables
 		create_caches
 	end
@@ -58,6 +59,19 @@ class SQLSingleCardAnalyzer < AnalyzerBase
 		}
 	end
 	
+	def execute_parameter_command(command, parameters)
+		@database_mutex.synchronize {
+			begin
+				logger.debug "execute sql command:\n#{command}"
+				logger.debug "with commands: #{parameters}"
+				@sql.exec_params command, params
+			rescue => exception
+				logger.error "error while running command. Message:"
+				logger.error "\n" + exception.to_s
+			end
+		}
+	end
+	
 	def execute_commands(commands)
 		@database_mutex.synchronize {
 			begin
@@ -97,7 +111,7 @@ class SQLSingleCardAnalyzer < AnalyzerBase
 	#==============================================
 	def finish(*args)
 		check_database_connection
-		push_cache_to_sql(@day_cache, Names::Day)
+		push_cache_to_sql(@day_cache, :day)
 		@day_cache.clear
 	end
 	
@@ -111,10 +125,7 @@ class SQLSingleCardAnalyzer < AnalyzerBase
 	#==============================================
 	def clear(*args)
 		time = draw_time *args
-		union_table Names::Day, Names::Week, time
-		union_table Names::Day, Names::HalfMonth, time
-		union_table Names::Day, Names::Month, time
-		union_season Names::Day, time
+		@names.periods.each { |period| union_table @names.basic_period, period, time if period != @names.basic_period }
 	end
 	
 	#==============================================
@@ -126,13 +137,13 @@ class SQLSingleCardAnalyzer < AnalyzerBase
 	def output(*args)
 		check_database_connection
 		time       = draw_time *args
-		periods    = [Names::Day, Names::Week, Names::HalfMonth, Names::Month, Names::Season]
-		categories = Names::Categories.values - [Names::Categories[:unknown], Names::Categories[:main]]
-		sources    = Names::Sources.values - [Names::Sources[:unknown], Names::Sources[:handWritten]]
+		periods    = @names.periods
+		categories = @names.categories.values - [@names.categories[:unknown], @names.categories[:main]]
+		sources    = @names.sources.values - [@names.sources[:unknown], @names.sources[:handWritten]]
 		number     = @config["Output.Numbers"]
 		number     = 50 if number.nil?
 		result     = {}
-		logger.info "Start to output"
+		logger.info "Start to output."
 		for period in periods
 			period_hash = {}
 			for source in sources
@@ -163,7 +174,7 @@ class SQLSingleCardAnalyzer < AnalyzerBase
 	#==============================================
 	def heartbeat(*args)
 		time = draw_time *args
-		clear time
+		# clear time
 		output time
 		nil
 	end
@@ -209,22 +220,21 @@ class SQLSingleCardAnalyzer < AnalyzerBase
 		data   = generate_deck_data deck
 		manual = @config["Manual"]
 		hash   = args[0] || {}
-		source = hash[:source] || "Unknown"
-		source = Names::Sources[source.to_sym]
-		source = Names::Sources[:unknown] if source == nil
+		source = hash[:source] || ""
+		source = @names.source_name source
 		time   = draw_time hash[:time]
 		if manual
 			add_deck_data_to_cache data, source, time
 		else
-			add_deck_data_to_sql data, Names::Day, source, Time.now
+			add_deck_data_to_sql data, @names.basic_period, source, Time.now
 		end
 	end
 	
 	def generate_deck_data(deck)
 		data = {
-				Names::Categories[:main] => generate_pack_data(deck.main_classified),
-				Names::Categories[:side] => generate_pack_data(deck.side_classified),
-				Names::Categories[:ex]   => generate_pack_data(deck.ex_classified)
+				@names.categories[:main] => generate_pack_data(deck.main_classified),
+				@names.categories[:side] => generate_pack_data(deck.side_classified),
+				@names.categories[:ex]   => generate_pack_data(deck.ex_classified)
 		}
 		seprate_types_from_main data
 		data
@@ -241,14 +251,14 @@ class SQLSingleCardAnalyzer < AnalyzerBase
 	end
 	
 	def seprate_types_from_main(deck_data)
-		main_data = deck_data[Names::Categories[:main]]
-		[:mainMonster, :mainSpell, :mainTrap, :unknown].each { |category| deck_data[Names::Categories[category]] = {} }
+		main_data = deck_data[@names.categories[:main]]
+		[:mainMonster, :mainSpell, :mainTrap, :unknown].each { |category| deck_data[@names.categories[category]] = {} }
 		main_data.each do |id, data|
 			card                = Card[id]
-			name                = Names.CategoryFlagName "Main", card
+			name                = @names.category_flag_name "main", card
 			deck_data[name][id] = data
 		end
-		deck_data.delete Names::Categories[:main]
+		deck_data.delete @names.categories[:main]
 	end
 	
 	def translate_result_to_hash(pg_result)
@@ -298,117 +308,150 @@ class SQLSingleCardAnalyzer < AnalyzerBase
 		end
 	end
 	
-	module Names
-		Day       = "day"
-		Week      = "week"
-		HalfMonth = "halfmonth"
-		Month     = "month"
-		Season    = "season"
+	def load_names
+		@names = Names.new
+	end
+	
+	class Names
+		attr_accessor :periods
+		attr_accessor :basic_period
+		attr_accessor :database_time_format
+		attr_accessor :unknown_flag
+		attr_reader :categories
+		attr_reader :sources
 		
-		DatabaseTimeFormat = "%Y-%m-%d"
+		def initialize
+			@periods       = [:day, :week, :halfmonth, :month, :season]
+			@basic_period  = @periods[0]
+			@season_period = :season
+			
+			@unknown_flag = :unknown
+			
+			@table_names = {
+					day:       "day",
+					week:      "week",
+					halfmonth: "halfmonth",
+					month:     "month",
+					season:    "season"
+			}
+			
+			@period_time_length = {
+					day:       1,
+					week:      7,
+					halfmonth: 15,
+					month:     30,
+					season:    0
+			}
+			
+			@database_time_format = "%Y-%m-%d"
+			
+			@categories = {
+					main:        "main",
+					mainMonster: "monster",
+					mainSpell:   "spell",
+					mainTrap:    "trap",
+					side:        "side",
+					ex:          "ex",
+					unknown:     "unknown"
+			}
+			
+			@sources = {
+					athletic:    "athletic",
+					entertain:   "entertainment",
+					handWritten: "handwritten",
+					unknown:     "unknown"
+			}
+			
+			@season_times = [
+					Time.new(2000, 1, 1),
+					Time.new(2000, 4, 1),
+					Time.new(2000, 7, 1),
+					Time.new(2000, 10, 1)
+			]
+		end
 		
-		DayTimePeriod       = 1
-		WeekTimePeriod      = 7
-		HalfMonthTimePeriod = 15
-		MonthTimePeriod     = 30
-		
-		Categories = {
-				main:        "main",
-				mainMonster: "monster",
-				mainSpell:   "spell",
-				mainTrap:    "trap",
-				side:        "side",
-				ex:          "ex",
-				unknown:     "unknown"
-		}
-		
-		Sources = {
-				athletic:    "athletic",
-				entertain:   "entertainment",
-				handWritten: "handwritten",
-				unknown:     "unknown"
-		}
-		
-		def self.CategoryFlagName(area, card)
-			area.downcase!
+		def category_flag_name(category, card)
+			category.downcase!
 			card = Card[card] if card.is_a? Integer
-			return UnknownFlag if card == nil
-			if area == "side"
-				return SideFlag
+			return @categories[:unknown] if card == nil
+			if category == "side"
+				return @categories[:side]
 			else # main or ex or else
 				if card.is_ex?
-					return Categories[:main]
+					return @categories[:main]
 				elsif card.is_monster?
-					return Categories[:mainMonster]
+					return @categories[:mainMonster]
 				elsif card.is_spell?
-					return Categories[:mainSpell]
+					return @categories[:mainSpell]
 				elsif card.is_trap?
-					return Categories[:mainTrap]
+					return @categories[:mainTrap]
 				else
-					return Categories[:unknown]
+					return @categories[:unknown]
 				end
 			end
 		end
 		
-		def self.TableName(type)
-			type = type.downcase
-			case type
-				when Names::Day, Names::Week, Names::HalfMonth, Names::Month, Names::Season
-					return type
-				else
-					logger.warn "Unrecognized time type #{type}."
-					Names::Day
+		def table_name(period)
+			period    = period.downcase
+			tableName = @table_names[period]
+			if tableName != nil
+				return tableName
+			else
+				logger.warn "Unrecognized time type #{period}."
+				@table_names[@periods[0]]
 			end
 		end
 		
-		def self.TimeFlagName(type, time)
-			type = type.downcase
-			case type
-				when Names::Day
-					time.strftime DayFlag
-				when Names::Week
-					time.strftime WeekFlag
-				when Names::HalfMonth
-					time.strftime HalfMonthFlag
-				when Names::Month
-					time.strftime MonthFlag
-				when Names::Season
-					time.strftime("%Y-") + ((time.month - 1) / 3 * 3 + 1).to_s + "-01"
-				else
-					logger.warn "Unrecognized time type #{type}."
-					time.strftime DayFlag
+		def time_period_length(period)
+			period = period.downcase
+			length = @period_time_length[period]
+			if length != nil
+				return length
+			else
+				logger.warn "Unrecognized time type #{period}."
+				1
 			end
 		end
 		
-		def self.TimePeriodLength(type)
-			type = type.downcase
-			case type
-				when Names::Day
-					DayTimePeriod
-				when Names::Week
-					WeekTimePeriod
-				when Names::HalfMonth
-					HalfMonthTimePeriod
-				when Names::Month
-					MonthTimePeriod
-				when Names::Season
-					0
-				else
-					logger.warn "Unrecognized time type #{type}."
-					1
+		def time_period_start(period, time_end)
+			if period == @season_period
+				return season_time_period_start time_end
+			else
+				return time_end - 86400 * time_period_length(period)
 			end
 		end
-	end
-	
-	def type_arguments(type, time)
-		time_flag   = time.strftime Names::DatabaseTimeFormat
-		time_period = Names.TimePeriodLength type
-		table_name  = Names.TableName type
-		{
-				TimePeriod: time_period,
-				TimeStr:    time_flag,
-				TableName:  table_name
-		}
+		
+		def season_time_period_start(time_end)
+			match_times = []
+			@season_times.each do |time|
+				time1 = Time.new time_end.year, time.month, time.day
+				time2 = Time.new time_end.year - 1, time.month, time.day
+				match_times.push time1
+				match_times.push time2
+			end
+			match_times.select { |time| time_end > time }.min { |time1, time2| (time_end - time1) <=> (time_end - time2) }
+		end
+		
+		def type_arguments(period, time)
+			time_flag   = time.strftime @database_time_format
+			time_period = time_period_length period
+			table_name  = table_name period
+			{
+					TimePeriod: time_period,
+					TimeStr:    time_flag,
+					TableName:  table_name
+			}
+		end
+		
+		def category_name(category)
+			category_str = @categories[category.to_sym]
+			category_str == nil ? @categories[@unknown_flag] : category_str
+		end
+		
+		def source_name(source)
+			source_str = @sources[source.to_sym]
+			source_str == nil ? @sources[@unknown_flag] : source_str
+		end
 	end
 	
 	def load_commands
@@ -514,11 +557,7 @@ class SQLSingleCardAnalyzer < AnalyzerBase
 	end
 	
 	def create_tables
-		create_table Names::Day
-		create_table Names::Week
-		create_table Names::HalfMonth
-		create_table Names::Month
-		create_table Names::Season
+		@names.periods.each { |period| create_table @names.table_name period }
 	end
 	
 	def create_caches
@@ -531,7 +570,7 @@ class SQLSingleCardAnalyzer < AnalyzerBase
 	end
 	
 	def add_deck_data_to_cache(hash_data, source, time)
-		time = time.strftime Names::DatabaseTimeFormat if time.is_a? Time
+		time = time.strftime @names.database_time_format if time.is_a? Time
 		hash_data.each do |category, hash|
 			hash.each do |id, data|
 				add_data_to_cache id, category, source, time, data
@@ -550,10 +589,10 @@ class SQLSingleCardAnalyzer < AnalyzerBase
 	
 	def add_deck_data_to_sql_multi(hash_data, type, source, time)
 		check_database_connection
-		arguments   = type_arguments type, time
+		arguments   = @names.type_arguments type, time
 		table_name  = arguments[:TableName]
 		time_period = arguments[:TimePeriod]
-		time        = time.strftime Names::DatabaseTimeFormat if time.is_a? Time
+		time        = time.strftime @names.database_time_format if time.is_a? Time
 		datas       = []
 		hash_data.each do |category, hash|
 			hash.each do |id, data|
@@ -566,7 +605,7 @@ class SQLSingleCardAnalyzer < AnalyzerBase
 	
 	def add_deck_data_to_sql_single(hash_data, type, source, time)
 		check_database_connection
-		arguments = type_arguments type, time
+		arguments = @names.type_arguments type, time
 		hash_data.each do |category, hash|
 			hash.each do |id, data|
 				add_data_to_sql arguments[:TableName], id, category, time, arguments[:TimePeriod], source, data
@@ -590,7 +629,7 @@ class SQLSingleCardAnalyzer < AnalyzerBase
 	
 	def add_data_to_sql(table_name, id, category, time, time_period, source, data)
 		id        = check_card_alias id
-		time_flag = time.strftime Names::DatabaseTimeFormat
+		time_flag = time.strftime @names.database_time_format
 		command   = sprintf @commands[:UpdateCardCommand], table_name, id, category, time_flag, time_period, source, *data
 		execute_command command
 	end
@@ -615,9 +654,9 @@ class SQLSingleCardAnalyzer < AnalyzerBase
 		end
 	end
 	
-	def push_cache_to_sql_single(cache, type)
-		time_period = Names.TimePeriodLength type
-		table_name  = Names.TableName type
+	def push_cache_to_sql_single(cache, period)
+		time_period = @names.time_period_length period
+		table_name  = @names.table_name period
 		commands    = ["begin;"]
 		# [id, category, source, time] => data
 		for key, value in cache.cache
@@ -627,41 +666,32 @@ class SQLSingleCardAnalyzer < AnalyzerBase
 		execute_commands commands
 	end
 	
-	def push_cache_to_sql_multi(cache, type)
-		time_period = Names.TimePeriodLength type
-		table_name  = Names.TableName type
-		card_datas  = cache.cache.map { |key, value| [key[0], key[1], key[3], time_period, key[2], *value] }
-		add_multi_data_to_sql table_name, card_datas
+	def push_cache_to_sql_multi(cache, period)
+		time_period = @names.time_period_length period
+		table_name  = @names.table_name period
+		card_data   = cache.cache.map { |key, value| [key[0], key[1], key[3], time_period, key[2], *value] }
+		add_multi_data_to_sql table_name, card_data
 	end
 	
-	def union_table(from_type, to_type, time)
-		from_table_name = Names.TableName(from_type)
-		to_table_name   = Names.TableName(to_type)
+	def union_table(from_period, to_period, time)
+		from_table_name = @names.table_name from_period
+		to_table_name   = @names.table_name to_period
+		time_start      = @names.time_period_start to_period, time
 		time_end        = time
-		time_length     = Names.TimePeriodLength to_type
-		union_custom_table from_table_name, to_table_name, time_end, time_length
+		time_length     = @names.time_period_length to_period
+		union_custom_table from_table_name, to_table_name, time_end, time_length, time_start
 	end
 	
 	def union_custom_table(from_table_name, to_table_name, time_end, time_length, time_start = nil)
 		time_start = (time_end - 86400 * time_length) if time_start == nil
-		time_start = time_start.strftime Names::DatabaseTimeFormat
-		time_end   = time_end.strftime Names::DatabaseTimeFormat
+		time_start = time_start.strftime @names.database_time_format
+		time_end   = time_end.strftime @names.database_time_format
 		command    = sprintf @commands[:UnionCardCommand], from_table_name, to_table_name, time_start, time_end, time_length
 		execute_command command
 	end
 	
-	def union_season(from_type, time)
-		from_table_name = Names.TableName from_type
-		to_table_name   = Names.TableName Names::Season
-		time_end        = time.strftime Names::DatabaseTimeFormat
-		time_start      = Time.new(time.year, (time.month - 1) / 3 * 3 + 1, 1)
-		time_length     = Names.TimePeriodLength Names::Season
-		command         = sprintf @commands[:UnionCardCommand], from_table_name, to_table_name, time_start, time_end, time_length
-		execute_command command
-	end
-	
 	def output_table(type, category, source, time, number)
-		arguments  = type_arguments type, time
+		arguments  = @names.type_arguments type, time
 		table_name = arguments[:TableName]
 		time_flag  = arguments[:TimeStr]
 		command    = sprintf @commands[:SearchRankedCardCommand], table_name, category, time_flag, source, number
@@ -669,11 +699,11 @@ class SQLSingleCardAnalyzer < AnalyzerBase
 	end
 	
 	def output_card(type, source, category, time, id)
-		arguments    = type_arguments type, time
+		arguments    = @names.type_arguments type, time
 		table_name   = arguments[:TableName]
 		time_flag    = arguments[:TimeStr]
-		source_str   = Names::Sources[source.to_sym]
-		category_str = Names::Categories[category.to_sym]
+		source_str   = @names.source_name source
+		category_str = @names.category_name category
 		# Table Name, ID，Category, Time, Source
 		command      = sprintf @commands[:SearchCardCommand], table_name, id.to_s, category_str, time_flag, source_str
 		execute_command command
@@ -688,8 +718,8 @@ class SQLSingleCardAnalyzer
 	
 	def query_child(period = "", source = "", category = "")
 		period_str   = period
-		source_str   = Names::Sources[source.to_sym] || Names::Sources[:unknown]
-		category_str = Names::Categories[category.to_sym]
+		source_str   = @names.source_name source
+		category_str = @names.category_name category
 		@last_result = {} if @last_result == nil
 		result       = @last_result[period_str] || {}
 		return result if source_str == nil
