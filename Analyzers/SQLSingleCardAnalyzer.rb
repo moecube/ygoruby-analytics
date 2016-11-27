@@ -694,6 +694,7 @@ class SQLSingleCardAnalyzer
 		result       = @last_result[period_str] || {}
 		return result if source_str == nil
 		result = result[source_str] || {}
+		return result if category_str == nil
 		result = result[category_str] || {}
 		result.to_json
 	end
