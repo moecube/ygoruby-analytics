@@ -1,6 +1,6 @@
 # 手动模式下，每5分钟把缓存存进数据库
-*/5 * * * * curl -d "" "http://127.0.0.1:8080/analyze/finish&accesskey=$ACCESS_KEY"
+*/5 * * * * curl -d "" "http://127.0.0.1:8080/analyze/finish?accesskey=$ACCESS_KEY"
 # 心跳
-59 23 * * * curl "http://127.0.0.1:8080/analyze/heartbeat%accesskey=$ACCESS_KEY"
+59 23 * * * curl "http://127.0.0.1:8080/analyze/heartbeat?accesskey=$ACCESS_KEY"
 # Test
 # */1 * * * * echo "hello" >> /tmp/log
