@@ -1,0 +1,75 @@
+{
+  "YgorubyBase": {
+    "CardDatabase": {
+      "zh-CN": "Resources/ygopro-database/locales/zh-CN/cards.cdb",
+      "en-US": "Resources/ygopro-database/locales/en-US/cards.cdb",
+      "ja-JP": "Resources/ygopro-database/locales/ja-JP/cards.cdb"
+    },
+    "Strings":
+    {
+      "zh-CN": "Resources/ygopro-database/locales/zh-CN/strings.conf"
+    }
+  },
+  "Analyzers": {
+    "Analyzer": [
+      "SQLSingleCardAnalyzer"
+    ],
+    "SqliteSimpleCardAnalyzer": {
+      "DatabaseName": "Data/SingleCardAnalysis.sqlite",
+      "OutputJsonName": "Data/SingleCardAnalysis.json",
+      "TopNumbers": "50",
+      "Manual": true,
+      "OutputName": {
+        "Day": "Day",
+        "Week": "Week",
+        "Month": "Month",
+        "Season": "Season",
+        "Time": "Time"
+      }
+    },
+    "SQLSingleCardAnalyzer": {
+      "ConnectArgs": {
+        "dbname": "Test2",
+        "host": "localhost",
+        "port": "5432"
+      },
+      "Manual": true,
+      "Multi": true,
+      "Output": {
+        "JsonName": "Data/SingleCardAnalysis.json",
+        "Numbers": "50",
+        "ExtraMessage": [
+          "name"
+        ]
+      }
+    }
+  },
+  "Outputs": {
+    "Output:": [
+      "Server"
+    ],
+    "HTMLGenerator": {
+      "inputName": "HTMLGenerator/mod.html",
+      "outputName": "HTMLGenerator/content.html",
+      "dataName": "Data/SingleCardAnalysis.json",
+      "title": "统计",
+      "fromPath": "./mod.html",
+      "toPath": "./content.html",
+      "imagePath": "http://cdn233.my-card.in/ygopro/pics/thumbnail/%s.jpg",
+      "dayTableName": "day-generate",
+      "weekTableName": "week-generate",
+      "dayLabelName": "day-name",
+      "weekLabelName": "week-name"
+    },
+    "Server": {
+      "Port": 8080
+    }
+  },
+  "Plugins": {
+    "DeckIdentifier": {
+      "Definitions": [
+        "./Plugins/DeckIdentifier/Definition/"
+      ]
+    }
+  }
+}

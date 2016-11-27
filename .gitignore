@@ -7,3 +7,4 @@ Test.rb
 HTMLGenerator/content.html
 *.log
 Plugins/DeckIdentifier/
+Config.json
