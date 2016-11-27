@@ -505,8 +505,8 @@ class SQLSingleCardAnalyzer < AnalyzerBase
 		def add(card_environment, data)
 			@cache[card_environment] = [0, 0, 0, 0, 0] if self.cache[card_environment] == nil
 			(0..4).each { |i| @cache[card_environment][i] += data[i] }
-			@count[card_environment] = [0, 0, 0, 0, 0] if self.cache[card_environment] == nil
-			@count[card_environment]  += 1
+			@count[card_environment] = 0 if @count[card_environment] == nil
+			@count[card_environment] += 1
 		end
 	end
 	
