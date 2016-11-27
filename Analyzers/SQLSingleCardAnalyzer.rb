@@ -9,6 +9,7 @@ require "pg"
 class SQLSingleCardAnalyzer < AnalyzerBase
 	def initialize
 		load_database
+		load_commands
 		create_tables
 		create_caches
 	end
@@ -255,7 +256,7 @@ class SQLSingleCardAnalyzer < AnalyzerBase
 			logger.warn "try to translate a pg_result: nil"
 			return {}
 		end
-		if pg_result.status != PG::PGRES_TUPLES_OK
+		if pg_result.result_status != PG::PGRES_TUPLES_OK
 			logger.error "try to translate a not tuples result. #{pg_result}"
 		end
 		pg_result.map { |piece| add_extra_message(piece); piece }
@@ -410,9 +411,10 @@ class SQLSingleCardAnalyzer < AnalyzerBase
 		}
 	end
 	
-	module Commands
+	def load_commands
+		@commands                      = {}
 		# [Table Name]
-		CreateTableCommand = <<-Command
+		@commands[:CreateTableCommand] = <<-Command
 			create table if not exists %1$s (
 				id integer,
 				category varchar,
@@ -430,7 +432,7 @@ class SQLSingleCardAnalyzer < AnalyzerBase
 		
 		# [    1     ,  2,    3    ,   4 ,      5    ,   6   ,     7    ,    8   ,    9  ,    10  ,    11    ]
 		# [Table Name, ID, Category, Time, TimePeriod, source, frequency, numbers, putOne, putTwo, putThree]
-		UpdateCardCommand = <<-Command
+		@commands[:UpdateCardCommand] = <<-Command
 			insert into %1$s values(%2$s, '%3$s', '%4$s', %5$s, '%6$s', %7$s, %8$s, %9$s, %10$s, %11$s)
 			on conflict on constraint card_environment_%1$s do update set
 				frequency = %1$s.frequency + %7$s,
@@ -443,15 +445,15 @@ class SQLSingleCardAnalyzer < AnalyzerBase
 		
 		# [ 1,    2    ,   3 ,      4    ,   5   ,     6    ,    7   ,    9  ,   9   ,    10   ]
 		# [ID, Category, Time, TimePeriod, source, frequency, numbers, putOne, putTwo, putThree]
-		CardValueForMultiCommand = <<-Value
+		@commands[:CardValueForMultiCommand] = <<-Value
 			(%1$s, '%2$s', '%3$s', '%4$s', '%5$s', '%6$s', '%7$s', '%8$s', '%9$s', '%10$s')
 		Value
 		
-		CardValueJoinner       = ",\n"
+		@commands[:CardValueJoinner]       = ",\n"
 		
 		# [     1    ,       2     ]
 		# [Table Name, Card Message]
-		UpdateMultiCardCommand = <<-Command
+		@commands[:UpdateMultiCardCommand] = <<-Command
 			insert into %s values
 				%s
 			on conflict on constraint card_environment_day
@@ -465,30 +467,31 @@ class SQLSingleCardAnalyzer < AnalyzerBase
 		
 		# [     1    ,     2   ,   3 ,   4   ,   5   ,  6  ]
 		# [Table Name, Category, Time, Source, Number, Page]
-		SearchRankedCardCommand = <<-Command
+		@commands[:SearchRankedCardCommand] = <<-Command
 			select * from %1$s where category = '%2$s' and time = '%3$s' and source = '%4$s' order by frequency desc limit %5$s
 		Command
 		
 		# [     1    ,  2,    3    ,  4  ,   5   ]
 		# [Table Name, ID，Category, Time, Source]
-		SearchCardCommand = <<-Command
+		@commands[:SearchCardCommand] = <<-Command
 			select * from %1$s where id = %2$s and category = '%3$s' and time = '%4$s' and source = '%5$s'
 		Command
 		
 		# [        1      ,        2     ,     3    ,    4   ,      5    ]
 		# [From Table Name, To Table Name, TimeStart, TimeEnd, TimePeriod]
-		UnionCardCommand = <<-Command
+		@commands[:UnionCardCommand] = <<-Command
 			insert into %2$s
 			select id, category, '%4$s', %5$s, source, sum(frequency), sum(numbers), sum(putOne), sum(putTwo), sum(putThree) from %1$s
 			where %1$s.time > '%3$s' and %1$s.time <= '%4$s' group by (id, category, source)
 			on conflict on constraint card_environment_%2$s do update set
-				frequency = excluded.frequency,
+			frequency = excluded.frequency,
 				numbers = excluded.numbers,
 				putOne = excluded.putOne,
 				putTwo = excluded.putTwo,
 				putThree = excluded.putThree;
 		Command
 	end
+	
 	
 	class Cache
 		attr_accessor :cache
@@ -523,7 +526,7 @@ class SQLSingleCardAnalyzer < AnalyzerBase
 	end
 	
 	def create_table(table_name)
-		command = sprintf Commands::CreateTableCommand, table_name
+		command = sprintf @commands[:CreateTableCommand], table_name
 		execute_command command
 	end
 	
@@ -588,7 +591,7 @@ class SQLSingleCardAnalyzer < AnalyzerBase
 	def add_data_to_sql(table_name, id, category, time, time_period, source, data)
 		id        = check_card_alias id
 		time_flag = time.strftime Names::DatabaseTimeFormat
-		command   = sprintf Commands::UpdateCardCommand, table_name, id, category, time_flag, time_period, source, *data
+		command   = sprintf @commands[:UpdateCardCommand], table_name, id, category, time_flag, time_period, source, *data
 		execute_command command
 	end
 	
@@ -597,9 +600,9 @@ class SQLSingleCardAnalyzer < AnalyzerBase
 			logger.warn "No data in the pool to update."
 			return
 		end
-		values  = card_datas.map { |card_data| sprintf Commands::CardValueForMultiCommand, *card_data }
-		value   = values.join Commands::CardValueJoinner
-		command = sprintf Commands::UpdateMultiCardCommand, table_name, value
+		values  = card_datas.map { |card_data| sprintf @commands[:CardValueForMultiCommand], *card_data }
+		value   = values.join @commands[:CardValueJoinner]
+		command = sprintf @commands[:UpdateMultiCardCommand], table_name, value
 		execute_command command
 	end
 	
@@ -618,7 +621,7 @@ class SQLSingleCardAnalyzer < AnalyzerBase
 		commands    = ["begin;"]
 		# [id, category, source, time] => data
 		for key, value in cache.cache
-			commands.push sprintf Commands::UpdateCardCommand, table_name, key[0], key[1], key[3], time_period, key[2], *value
+			commands.push sprintf @commands[:UpdateCardCommand], table_name, key[0], key[1], key[3], time_period, key[2], *value
 		end
 		commands.push "commit;"
 		execute_commands commands
@@ -643,7 +646,7 @@ class SQLSingleCardAnalyzer < AnalyzerBase
 		time_start = (time_end - 86400 * time_length) if time_start == nil
 		time_start = time_start.strftime Names::DatabaseTimeFormat
 		time_end   = time_end.strftime Names::DatabaseTimeFormat
-		command    = sprintf Commands::UnionCardCommand, from_table_name, to_table_name, time_start, time_end, time_length
+		command    = sprintf @commands[:UnionCardCommand], from_table_name, to_table_name, time_start, time_end, time_length
 		execute_command command
 	end
 	
@@ -653,7 +656,7 @@ class SQLSingleCardAnalyzer < AnalyzerBase
 		time_end        = time.strftime Names::DatabaseTimeFormat
 		time_start      = Time.new(time.year, (time.month - 1) / 3 * 3 + 1, 1)
 		time_length     = Names.TimePeriodLength Names::Season
-		command         = sprintf Commands::UnionCardCommand, from_table_name, to_table_name, time_start, time_end, time_length
+		command         = sprintf @commands[:UnionCardCommand], from_table_name, to_table_name, time_start, time_end, time_length
 		execute_command command
 	end
 	
@@ -661,7 +664,7 @@ class SQLSingleCardAnalyzer < AnalyzerBase
 		arguments  = type_arguments type, time
 		table_name = arguments[:TableName]
 		time_flag  = arguments[:TimeStr]
-		command    = sprintf Commands::SearchRankedCardCommand, table_name, category, time_flag, source, number
+		command    = sprintf @commands[:SearchRankedCardCommand], table_name, category, time_flag, source, number
 		execute_command command
 	end
 	
@@ -672,7 +675,7 @@ class SQLSingleCardAnalyzer < AnalyzerBase
 		source_str   = Names::Sources[source.to_sym]
 		category_str = Names::Categories[category.to_sym]
 		# Table Name, ID，Category, Time, Source
-		command      = sprintf Commands::SearchCardCommand, table_name, id.to_s, category_str, time_flag, source_str
+		command      = sprintf @commands[:SearchCardCommand], table_name, id.to_s, category_str, time_flag, source_str
 		execute_command command
 	end
 end
