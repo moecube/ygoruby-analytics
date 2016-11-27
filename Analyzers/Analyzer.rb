@@ -116,8 +116,8 @@ module Analyzer
 	end
 	
 	Analyzer.api.push "post", "/analyze/finish" do
-		if !(Outputs.authorize_check params)
-			logger.warn "refused Analyzer text post."
+		if false#!(Outputs.authorize_check params)
+			logger.warn "refused Analyzer finish post."
 			[401, {}, "not correct access key."]
 		else
 			logger.info "Received finish request."
@@ -130,7 +130,7 @@ module Analyzer
 	
 	Analyzer.api.push "delete", "/analyze" do
 		if !(Outputs.authorize_check params)
-			logger.warn "refused Analyzer text post."
+			logger.warn "refused Analyzer delete post."
 			[401, {}, "not correct access key."]
 		else
 			logger.info "Received clear request."
