@@ -181,37 +181,6 @@ class SQLSingleCardAnalyzer < AnalyzerBase
 	
 	#endregion
 	
-	#==============================================
-	# draw_time
-	#----------------------------------------------
-	# helper
-	# draw the time argument from *args.
-	#==============================================
-	def draw_time(*args)
-		time = args[0]
-		time = Time.now if time == nil
-		time = Time.at time if time.is_a? Fixnum
-		if time.is_a? String
-			time = time.downcase
-			if time == 'yesterday'
-				time = Time.now - 86400
-			elsif time == 'tomorrow'
-				time = Time.now + 86400
-			elsif time == 'now' or time == 'today'
-				time = Time.now
-			else
-				time = Time.gm *time.split("-")
-			end
-		end
-		if time.is_a? Time
-			# do nothing
-		elsif time == args[0]
-			logger.warn "Unrecognized time arg #{args}. Returned Time.now"
-			time = Time.now
-		end
-		time
-	end
-	
 	def analyze_replay(replay, *args)
 		replay.decks.each { |deck| analyze_deck deck, *args }
 	end
@@ -268,6 +237,7 @@ class SQLSingleCardAnalyzer < AnalyzerBase
 		end
 		if pg_result.result_status != PG::PGRES_TUPLES_OK
 			logger.error "try to translate a not tuples result. #{pg_result}"
+			return {}
 		end
 		pg_result.map { |piece| add_extra_message(piece); piece }
 	end
@@ -317,8 +287,8 @@ class SQLSingleCardAnalyzer < AnalyzerBase
 		attr_accessor :basic_period
 		attr_accessor :database_time_format
 		attr_accessor :unknown_flag
-		attr_reader :categories
-		attr_reader :sources
+		attr_accessor :categories
+		attr_accessor :sources
 		
 		def initialize
 			@periods       = [:day, :week, :halfmonth, :month, :season]
@@ -483,7 +453,7 @@ class SQLSingleCardAnalyzer < AnalyzerBase
 				putOne = %1$s.putOne + %9$s,
 				putTwo = %1$s.putTwo + %10$s,
 				putThree = %1$s.putThree + %11$s
-			where %1$s.id = %2$s and %1$s.category = '%3$s' and %1$s.time = '%4$s' and %1$s.timePeriod = '%5$s' and %1$s.source = '%6$s'
+			where and %1$s.time = '%4$s' and %1$s.timePeriod = '%5$s' and %1$s.source = '%6$s'
 		Command
 		
 		# [ 1,    2    ,   3 ,      4    ,   5   ,     6    ,    7   ,    9  ,   9   ,    10   ]
@@ -497,15 +467,15 @@ class SQLSingleCardAnalyzer < AnalyzerBase
 		# [     1    ,       2     ]
 		# [Table Name, Card Message]
 		@commands[:UpdateMultiCardCommand] = <<-Command
-			insert into %s values
-				%s
+			insert into %1$s values
+				%2$s
 			on conflict on constraint card_environment_day
 			  do update set
-			    frequency = day.frequency + excluded.frequency,
-			    numbers   = day.numbers + excluded.numbers,
-			    putone    = day.putone + excluded.putone,
-			    puttwo    = day.puttwo + excluded.puttwo,
-			    putthree  = day.putthree + excluded.putthree
+			    frequency = %1$s.frequency + excluded.frequency,
+			    numbers   = %1$s.numbers + excluded.numbers,
+			    putone    = %1$s.putone + excluded.putone,
+			    puttwo    = %1$s.puttwo + excluded.puttwo,
+			    putthree  = %1$s.putthree + excluded.putthree
 		Command
 		
 		# [     1    ,     2   ,   3 ,   4   ,   5   ,  6  ]
@@ -527,7 +497,7 @@ class SQLSingleCardAnalyzer < AnalyzerBase
 			select id, category, '%4$s', %5$s, source, sum(frequency), sum(numbers), sum(putOne), sum(putTwo), sum(putThree) from %1$s
 			where %1$s.time > '%3$s' and %1$s.time <= '%4$s' group by (id, category, source)
 			on conflict on constraint card_environment_%2$s do update set
-			frequency = excluded.frequency,
+				frequency = excluded.frequency,
 				numbers = excluded.numbers,
 				putOne = excluded.putOne,
 				putTwo = excluded.putTwo,
@@ -541,7 +511,6 @@ class SQLSingleCardAnalyzer < AnalyzerBase
 		
 		def initialize
 			@cache = {}
-			@count = {}
 		end
 		
 		def clear
@@ -551,8 +520,6 @@ class SQLSingleCardAnalyzer < AnalyzerBase
 		def add(card_environment, data)
 			@cache[card_environment] = [0, 0, 0, 0, 0] if self.cache[card_environment] == nil
 			(0..4).each { |i| @cache[card_environment][i] += data[i] }
-			@count[card_environment] = 0 if @count[card_environment] == nil
-			@count[card_environment] += 1
 		end
 	end
 	

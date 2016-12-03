@@ -42,6 +42,7 @@ class Deck
 
 	def classify_pack(pack)
 		hash = {}
+		return {} if pack == nil
 		for card in pack
 			if hash[card] == nil
 				hash[card] = 1
@@ -139,9 +140,9 @@ class Deck
 	def self.from_hash(hash)
 		return nil if hash == nil
 		answer      = Deck.allocate
-		answer.main = hash["main"]
-		answer.side = hash["side"]
-		answer.ex   = hash["ex"]
+		answer.main = hash["main"] || []
+		answer.side = hash["side"] || []
+		answer.ex   = hash["ex"] || []
 		answer.classify
 		answer
 	end
