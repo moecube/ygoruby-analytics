@@ -30,7 +30,7 @@ default | 当与以上任一均不匹配，当做 day
 ### Source（统计数据来源）
 name | desc
 ---|---
-atheletic | 竞技场
+athletic | 竞技场
 entertainment | 娱乐匹配
 handwritten | 手动输入
 unknown | 未分类
@@ -53,7 +53,7 @@ default | 当与以上任一均不匹配，当做 unknown
 #### URI
 name | desc
 ---|---
-Request URL | /analyze/single/type, **未上线**
+Request URL | /analyze/single/type
 Request Method | GET
 Content-Type | application/json 
 
@@ -77,7 +77,7 @@ N/A|所查询的统计，从频率高到低|[*Card*, length = 50]
 #### URI
 name | desc
 ---|---
-Request URL | /analyze/single, **未上线**
+Request URL | /analyze/single
 Request Method | GET
 Content-Type | application/json
 
@@ -99,7 +99,7 @@ N/A | 整个 Cache 内容 | { *Type*: { *Source*: { *Category*: [*Card*, length 
 #### URI
 name | desc
 ---|---
-Request URL | /analyze/single/card, **未上线**
+Request URL | /analyze/single/card
 Request Method | GET
 Content-Type | application/json
 
