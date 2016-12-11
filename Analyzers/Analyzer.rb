@@ -148,6 +148,7 @@ module Analyzer
 		else
 			logger.info "Received heartbeat."
 			time = params["time"]
+			time = Time.now if tme == nil
 			if $analyzer_heartbeat_thread == nil
 				$analyzer_heartbeat_thread = Thread.new do
 					Analyzer.heartbeat time
