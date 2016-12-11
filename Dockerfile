@@ -24,4 +24,4 @@ RUN crontab /etc/crontab
 # ADD https://mycard.moe/ygopro/cards.cdb Resources/cards.cdb
 
 # 启动
-CMD cron && ruby -E UTF-8 main.rb
+CMD ["./entrypoint.sh"]
