@@ -1,7 +1,7 @@
-require File.dirname(__FILE__) + "/../Log.rb"
-require File.dirname(__FILE__) + "/../Config.rb"
-require File.dirname(__FILE__) + "/Card.rb"
-require "sqlite3"
+require File.dirname(__FILE__) + '/../Log.rb'
+require File.dirname(__FILE__) + '/../Config.rb'
+require File.dirname(__FILE__) + '/Card.rb'
+require 'sqlite3'
 
 class CardSet
 	attr_accessor :name
@@ -9,7 +9,7 @@ class CardSet
 	attr_accessor :code
 	attr_reader :ids
 
-	def initialize(code, name = "", origin_name = "")
+	def initialize(code, name = '', origin_name = '')
 		@code        = code
 		@name        = name
 		@origin_name = origin_name
@@ -21,8 +21,8 @@ class CardSet
 		ids.include? card
 	end
 
-	SqlQuerySet    = "select id from datas where (setcode & 0x0000000000000FFF == %s or setcode & 0x000000000FFF0000 == %s or setcode & 0x00000FFF00000000 == %s or setcode & 0x0FFF000000000000 == %s)"
-	SqlQuerySubSet = "select id from datas where (setcode & 0x000000000000FFFF == %s or setcode & 0x00000000FFFF0000 == %s or setcode & 0x0000FFFF00000000 == %s or setcode & 0xFFFF000000000000 == %s)"
+	SqlQuerySet    = 'select id from datas where (setcode & 0x0000000000000FFF == %s or setcode & 0x000000000FFF0000 == %s or setcode & 0x00000FFF00000000 == %s or setcode & 0x0FFF000000000000 == %s)'
+	SqlQuerySubSet = 'select id from datas where (setcode & 0x000000000000FFFF == %s or setcode & 0x00000000FFFF0000 == %s or setcode & 0x0000FFFF00000000 == %s or setcode & 0xFFFF000000000000 == %s)'
 
 	def load_ids
 		CardSet.load_sql if @@database == nil
@@ -37,7 +37,7 @@ class CardSet
 
 	def self.load_line(line)
 		line.strip!
-		return nil if line.start_with? "#"
+		return nil if line.start_with? '#'
 		matches = line.scan Reg
 		matches.map do |match|
 			code        = eval(match[1])
@@ -57,7 +57,7 @@ class CardSet
 	def self.load_lines(file)
 		until file.eof
 			line = file.readline
-			break if line.strip.start_with? "!setname"
+			break if line.strip.start_with? '!setname'
 		end
 		until file.eof
 			line        = file.readline
@@ -69,7 +69,7 @@ class CardSet
 	def self.initialize
 		begin
 			@@card_sets.clear
-			file_path = $config["Strings"]
+			file_path = $config['YgorubyBase.Strings.zh-CN']
 			file      = File.open file_path
 			CardSet.load_lines file
 			file.close
