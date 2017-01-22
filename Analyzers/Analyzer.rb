@@ -3,6 +3,7 @@ require "#{File.dirname __FILE__}/AnalyzerHelp.rb"
 require "#{File.dirname __FILE__}/../Log.rb"
 require "#{File.dirname __FILE__}/../Helper.rb"
 require "#{File.dirname __FILE__}/../YgorubyBase/Deck.rb"
+require "#{File.dirname __FILE__}/../Config.rb"
 
 module Analyzer
 	@@analyzers = {}
@@ -39,8 +40,6 @@ module Analyzer
 	end
 	
 	def self.autoload
-		require "#{File.dirname __FILE__}/../Config.rb"
-		require "#{File.dirname __FILE__}/../Log.rb"
 		@@config = $config[__FILE__]
 		return if @@config.nil?
 		keys = @@config
