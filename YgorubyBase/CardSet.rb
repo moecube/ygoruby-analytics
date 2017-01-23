@@ -57,7 +57,7 @@ class CardSet
 	def self.load_lines(file)
 		until file.eof
 			line = file.readline
-			break if line.strip.start_with? '!setname'
+			break if line.strip.start_with? '!setname' or line.strip.start_with? '#setnames'
 		end
 		until file.eof
 			line        = file.readline
@@ -87,15 +87,17 @@ class CardSet
 	end
 
 	def self.search_set(name)
-		sets = @@card_sets.select { |set| set.name == (name) or set.origin_name == (name) }
-		if sets == []
-			logger.warn "Can't find set named #{name}"
+		sets = @@card_sets.select { |set| set.name == (name) or set.origin_name == (name) or set.code.to_s == (name) }
+		set = sets[0]
+		set = CardSet.extra_set name if set == nil
+		if set == nil
+			logger.warn "Can't find set named #{name} and no card named like it."
 			return nil
 		end
 		if sets.size > 1
 			logger.warn "More then one set named #{name}"
 		end
-		return sets[0]
+		return set
 	end
 
 	@@database = nil
@@ -116,6 +118,35 @@ class CardSet
 	def to_json
 		to_hash().to_json
 	end
+	
+	
 end
 
 CardSet.initialize
+
+class CardSet
+	SqlNameSet = 'select id from texts where name like \'%%%s%%\''
+	def self.extra_set(name)
+		set = CardSet.allocate
+		set.name = name
+		set.code = ''
+		set.origin_name = ''
+		set.load_named_ids name
+		set = nil if set.ids.count == 0
+		@@card_sets.push set unless set.nil?
+		set
+	end
+	
+	def load_named_ids(name)
+		CardSet.load_sql if @@database == nil
+		query     = sprintf SqlNameSet, name
+		answer    = @@database.execute query
+		@ids = answer.map { |id| id[0] }
+		if @ids.count == 0
+			logger.warn "no card named with #{name}"
+		else
+			logger.info "loaded EXTRA set #{name} with #{@ids.count} proper cards."
+		end
+		answer.count
+	end
+end
