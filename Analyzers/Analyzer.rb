@@ -1,9 +1,9 @@
-require "#{File.dirname __FILE__}/AnalyzerBase.rb"
-require "#{File.dirname __FILE__}/AnalyzerHelp.rb"
-require "#{File.dirname __FILE__}/../Log.rb"
-require "#{File.dirname __FILE__}/../Helper.rb"
-require "#{File.dirname __FILE__}/../YgorubyBase/Deck.rb"
-require "#{File.dirname __FILE__}/../Config.rb"
+require File.join(File.dirname(__FILE__), 'AnalyzerBase.rb')
+require File.join(File.dirname(__FILE__), 'AnalyzerHelp.rb')
+require File.join(File.dirname(__FILE__), '../Log.rb')
+require File.join(File.dirname(__FILE__), '../Helper.rb')
+require File.join(File.dirname(__FILE__), '../YgorubyBase/Deck.rb')
+require File.join(File.dirname(__FILE__), '../Config.rb')
 
 module Analyzer
 	@@analyzers = {}
@@ -47,7 +47,7 @@ module Analyzer
 	end
 	
 	def self.push_analyzer_by_name(str)
-		return if str.start_with? "#"
+		return if str.start_with? '#'
 		path = File.join File.dirname(__FILE__), "#{str}.rb"
 		if File.exist? path
 			logger.info "loaded analyzer #{str} from #{path}"
@@ -64,102 +64,101 @@ module Analyzer
 		@@apis
 	end
 	
-	Analyzer.api.push "post", "/analyze/deck" do
-		call! env.merge("PATH_INFO" => "/analyze/deck/file")
+	Analyzer.api.push 'post', '/analyze/deck' do
+		call! env.merge('PATH_INFO' => '/analyze/deck/file')
 	end
 	
-	Analyzer.api.push "post", "/analyze/deck/json" do
+	Analyzer.api.push 'post', '/analyze/deck/json' do
 		request.body.rewind
 		require 'json'
-		require "#{File.dirname __FILE__}/../YgorubyBase/Deck.rb"
+		require File.join(File.dirname(__FILE__), '/../YgorubyBase/Deck.rb')
 		request_payload = JSON.parse request.body.read
 		Analyzer.analyze Deck.from_hash request_payload
-		"Deck read"
+		'Deck read'
 	end
 	
-	Analyzer.api.push "post", "/analyze/deck/file" do
+	Analyzer.api.push 'post', '/analyze/deck/file' do
 		if request.body.length > 3072
-			[413, {}, "Too big file"]
+			[413, {}, 'Too big file']
 		elsif !(Outputs.authorize_check params)
-			logger.warn "refused Analyzer file post."
-			[401, {}, "not correct access key."]
+			logger.warn 'refused Analyzer file post.'
+			[401, {}, 'not correct access key.']
 		else
 			request.body.rewind
-			source = params["source"]
+			source = params['source']
 			Analyzer.analyze Deck.load_ydk_str(request.body.read), source: source
-			"Deck read"
+			'Deck read'
 		end
 	end
 	
-	Analyzer.api.push "post", "/analyze/deck/text" do
-		# Temporary set for mercury 233
+	Analyzer.api.push 'post', '/analyze/deck/text' do
 		if request.body.length > 8192
-			[413, {}, "Too big file"]
+			[413, {}, 'Too big file']
 		elsif !(Outputs.authorize_check params)
-			logger.warn "refused Analyzer text post."
-			[401, {}, "not correct access key."]
+			logger.warn 'refused Analyzer text post.'
+			[401, {}, 'not correct access key.']
 		else
-			source       = params["arena"]
-			deck_content = params["deck"]
+			source       = params['arena']
+			deck_content = params['deck']
 			Analyzer.analyze Deck.load_ydk_str(deck_content), source: source
-			"Deck read"
+			'Deck read'
 		end
 	end
 	
-	Analyzer.api.push "post", "/analyze/record" do
-		[501, {}, "not supported now"]
+	Analyzer.api.push 'post', '/analyze/record' do
+		[501, {}, 'not supported now']
 	end
 	
-	Analyzer.api.push "post", "/analyze/tar" do
-		[501, {}, "not supported now"]
+	Analyzer.api.push 'post', '/analyze/tar' do
+		[501, {}, 'not supported now']
 	end
 	
-	Analyzer.api.push "post", "/analyze/finish" do
-		if false#!(Outputs.authorize_check params)
-			logger.warn "refused Analyzer finish post."
-			[401, {}, "not correct access key."]
+	Analyzer.api.push 'post', '/analyze/finish' do
+		if Outputs.authorize_check params
+			logger.warn 'refused Analyzer finish post.'
+			[401, {}, 'not correct access key.']
 		else
-			logger.info "Received finish request."
-			time = params["time"]
+			logger.info 'Received finish request.'
+			time = params['time']
 			Analyzer.finish time
-			logger.info "Finished from http request."
-			[200, {}, "Finished"]
+			logger.info 'Finished from http request.'
+			[200, {}, 'Finished']
 		end
 	end
 	
-	Analyzer.api.push "delete", "/analyze" do
+	Analyzer.api.push 'delete', '/analyze' do
 		if !(Outputs.authorize_check params)
-			logger.warn "refused Analyzer delete post."
-			[401, {}, "not correct access key."]
+			logger.warn 'refused Analyzer delete post.'
+			[401, {}, 'not correct access key.']
 		else
-			logger.info "Received clear request."
-			time = params["time"]
+			logger.info 'Received clear request.'
+			time = params['time']
 			Analyzer.clear time
-			logger.info "Cleared from http request."
-			"Cleared"
+			logger.info 'Cleared from http request.'
+			'Cleared'
 		end
 	end
 	
-	Analyzer.api.push "get", "/analyze/heartbeat" do
+	Analyzer.api.push 'get', '/analyze/heartbeat' do
 		if !(Outputs.authorize_check params)
-			logger.warn "refused Analyzer text post."
-			[401, {}, "not correct access key."]
+			logger.warn 'refused Analyzer text post.'
+			[401, {}, 'not correct access key.']
 		else
-			logger.info "Received heartbeat."
-			time = params["time"]
+			logger.info 'Received heartbeat.'
+			time = params['time']
 			time = Time.now if time == nil
 			if $analyzer_heartbeat_thread == nil
 				$analyzer_heartbeat_thread = Thread.new do
 					Analyzer.heartbeat time
 					$analyzer_heartbeat_thread = nil
-					logger.info "Heart beat finished."
+					logger.info 'Heart beat finished.'
 				end
-				"Beating."
+				'Beating.'
 			else
-				logger.fatal "Heartbeat thread doesn't work fine. Killed."
+				logger.fatal 'Heartbeat thread seems doesn\'t work fine. Killed.'
 				Thread.kill $analyzer_heartbeat_thread
 				$analyzer_heartbeat_thread = nil
-				[403, {}, "A heart is beating. Killed it."]
+				[403, {}, 'A heart is beating. Killed it.']
 			end
 		end
 	end

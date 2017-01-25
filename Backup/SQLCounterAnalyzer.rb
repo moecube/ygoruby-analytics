@@ -1,6 +1,26 @@
-require File.dirname(__FILE__) + '/SQLAnalyzer.rb'
+require File.dirname(__FILE__)+ '/SQLSingleCardAnalyzer.rb'
 
-class SQLCounterAnalyzer < PGSQLAnalyzer
+class SQLCounterAnalyzer < SQLSingleCardAnalyzer
+	def initialize
+		super
+	end
+	
+	def load_configs
+		super
+	end
+	
+	def analyze(obj, *args)
+		super
+	end
+	
+	def finish(*args)
+		super
+	end
+	
+	def clear(*args)
+		super
+	end
+	
 	def output(*args)
 		check_database_connection
 		time    = draw_time *args
@@ -23,14 +43,12 @@ class SQLCounterAnalyzer < PGSQLAnalyzer
 		@last_result = result
 	end
 	
-	def output_table(type, source, time)
-		# category ignored.
-		arguments   = @names.type_arguments type, time
-		table_name  = arguments[:TableName]
-		time_flag   = arguments[:TimeStr]
-		time_period = arguments[:TimePeriod]
-		command     = sprintf @commands[:output], table_name, time_flag, source, time_period
-		execute_command command
+	def heartbeat(*args)
+		super
+	end
+	
+	def generate_deck_data(deck)
+		{ category: { count: 1 } }
 	end
 	
 	def translate_result_to_hash(pg_result)
@@ -40,7 +58,7 @@ class SQLCounterAnalyzer < PGSQLAnalyzer
 		end
 		return 0 if pg_result.count == 0
 		if pg_result.result_status != PG::PGRES_TUPLES_OK
-			logger.error 'try to translate a not tuples result.' + pg_result
+			logger.error "try to translate a not tuples result. #{pg_result}"
 			return 0
 		end
 		pg_result[0]['count'].to_i
@@ -49,7 +67,7 @@ class SQLCounterAnalyzer < PGSQLAnalyzer
 	def load_commands
 		super
 		# [Table Name]
-		@commands[:create_table] = <<-Command
+		@commands[:CreateTableCommand] = <<-Command
 			create table if not exists %1$s (
 				time date,
 				timePeriod integer default 1,
@@ -59,9 +77,27 @@ class SQLCounterAnalyzer < PGSQLAnalyzer
 			);
 		Command
 		
+		# [    1     ,   4 ,      5    ,   6   ,   7  ]
+		# [Table Name, Time, TimePeriod, source, count]
+		@commands[:UpdateCardCommand] = <<-Command
+			insert into %1$s values('%4$s', %5$s, '%6$s', %7$s)
+			on conflict on constraint count_environment do update set
+				count = %1$s.count + %7$s
+			where %1$s.time = '%4$s' and %1$s.timePeriod = '%5$s' and %1$s.source = '%6$s'
+		Command
+		
+		
+		# [  3 ,      4    ,   5   ,   6  ]
+		# [Time, TimePeriod, source, count]
+		@commands[:CardValueForMultiCommand] = <<-Value
+			('%3$s', '%4$s', '%5$s', %6$s)
+		Value
+		
+		@commands[:CardValueJoinner]       = ",\n"
+		
 		# [     1    ,       2     ]
 		# [Table Name, Card Message]
-		@commands[:update_deck] = <<-Command
+		@commands[:UpdateMultiCardCommand] = <<-Command
 			insert into %1$s values
 				%2$s
 			on conflict on constraint count_environment
@@ -69,66 +105,61 @@ class SQLCounterAnalyzer < PGSQLAnalyzer
 			    count = %1$s.count + excluded.count
 		Command
 		
+		# Rewrite
 		# [     1    ,  2  ,   3   ,      4    ]
 		# [Table Name, Time, Source, TimePeriod]
-		@commands[:output] = <<-Command
+		@commands[:SearchCountCommand] = <<-Command
 			select * from %1$s where timePeriod = %4$s and time = '%2$s' and source = '%3$s'
 		Command
 		
 		# [        1      ,        2     ,     3    ,    4   ,      5    ]
 		# [From Table Name, To Table Name, TimeStart, TimeEnd, TimePeriod]
-		@commands[:union] = <<-Command
+		@commands[:UnionCardCommand] = <<-Command
 			insert into %2$s
 			select '%4$s', %5$s, source, sum(count) from %1$s
-			where %1$s.time > '%3$s' and %1$s.time <= '%4$s' and %1$s.timeperiod = 1  group by (source)
+			where %1$s.time > '%3$s' and %1$s.time <= '%4$s' and counts.timeperiod = 1  group by (source)
 			on conflict on constraint count_environment do update set
 				count = excluded.count
 		Command
 	end
 	
-	def generate_data(deck)
-		1
-	end
-	
-	def add_data_to_cache(data, options)
-		@cache.add [options[:time], options[:source]]
-	end
-	
-	def generate_cache_sql_string(data)
-		time_period, time, source, count = data
-		inner = ["'#{time}'", time_period, "'#{source}'", count].join ', '
-		"(#{inner})"
-	end
-	
-	def create_caches
-		@cache = Cache.new
-	end
-	
 	def load_names
-		@names = Names.new
+		super
+		class << @names
+			alias origin_table_name table_name
+			
+			def table_name(period)
+				'counts'
+			end
+		end
+		@names.categories = ['']
 	end
 	
 	class Cache < Cache
-		def initialize
-			super
-			@cache = {}
-		end
-		
-		def add(environment)
-			@cache[environment] = 0 unless @cache[environment] != nil
-			@cache[environment] += 1
-		end
-		
-		def clear
-			@cache.clear
+		def add(card_environment, data)
+			@cache[card_environment] = 0 if @cache[card_environment] == nil
+			@cache[card_environment] += 1
 		end
 	end
 	
-	class Names < Names
-		def table_name(period)
-			'counter'
-		end
+	def create_caches
+		@day_cache = Cache.new
 	end
+	
+	def create_tables
+		create_table @names.table_name(nil)
+	end
+	
+	def output_table(type, source, time)
+		# category ignored.
+		arguments   = @names.type_arguments type, time
+		table_name  = arguments[:TableName]
+		time_flag   = arguments[:TimeStr]
+		time_period = arguments[:TimePeriod]
+		command     = sprintf @commands[:SearchCountCommand], table_name, time_flag, source, time_period
+		execute_command command
+	end
+
 end
 
 class SQLCounterAnalyzer
@@ -136,14 +167,14 @@ class SQLCounterAnalyzer
 		@last_result
 	end
 	
-	def query_child(period = '', source = '')
+	def query_child(period = '', source = '', category = '')
 		period_str   = period
 		source_str   = @names.source_name source
 		@last_result = {} if @last_result == nil
 		result       = @last_result[period_str] || {}
 		return result if source == ''
-		result = result[source_str] || {}
-		result.to_json
+		result = result[source_str] || 0
+		result
 	end
 end
 
