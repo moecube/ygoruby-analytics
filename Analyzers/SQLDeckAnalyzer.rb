@@ -116,8 +116,8 @@ class SQLDeckAnalyzer < SQLSingleCardAnalyzer
 	
 	def finish(*args)
 		check_database_connection
-		push_cache @deck_cache, @deck_names, :day, *args
-		push_cache @tag_cache, @tag_names, :day, *args
+		push_cache @deck_cache, @deck_names, :day#, *args
+		push_cache @tag_cache, @tag_names, :day#, *args
 		@deck_cache.clear
 		@tag_cache.clear
 	end
