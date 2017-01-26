@@ -91,7 +91,7 @@ class SQLCounterAnalyzer < PGSQLAnalyzer
 	end
 	
 	def add_data_to_cache(data, options)
-		@cache.add [options[:time], options[:source]]
+		@cache.add [options[:time].strftime(@names.database_time_format), options[:source]]
 	end
 	
 	def generate_cache_sql_string(data)

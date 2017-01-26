@@ -95,8 +95,8 @@ class SQLDeckAnalyzer < SQLSingleCardAnalyzer
 	end
 	
 	def add_data_to_cache(data, options)
-		@deck_cache.add [options[:time], options[:source], data[0]]
-		data[1].each { |tag| @tag_cache.add [options[:time], options[:source], data[0] + '-' + tag] }
+		@deck_cache.add [options[:time].strftime(@deck_names.database_time_format), options[:source], data[0]]
+		data[1].each { |tag| @tag_cache.add [options[:time].strftime(@tag_names.database_time_format), options[:source], data[0] + '-' + tag] }
 	end
 	
 	def create_tables

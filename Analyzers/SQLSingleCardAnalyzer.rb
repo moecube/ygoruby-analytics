@@ -139,7 +139,8 @@ class SQLSingleCardAnalyzer < PGSQLAnalyzer
 	# id, category, source, time => number, frequency, putOne, putTwo, putThree, putOverThree
 	def generate_cache_sql_string(keys_and_values)
 		time_period, id, category, source, time, number, frequency, putOne, putTwo, putThree, putOverThree = keys_and_values
-		inner                                                                                              = [id, "'#{category}'", "'#{time}'", time_period, "'#{source}'", frequency, number, putOne, putTwo, putThree, putOverThree].join ', '
+		
+		inner = [id, "'#{category}'", "'#{time}'", time_period, "'#{source}'", frequency, number, putOne, putTwo, putThree, putOverThree].join ', '
 		"(#{inner})"
 	end
 	

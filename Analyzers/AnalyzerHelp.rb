@@ -5,6 +5,7 @@ require "#{File.dirname __FILE__}/../YgorubyBase/Unzipper.rb"
 module Analyzer
 	def self.analyze_folder(folder_path, *args)
 		file_paths = Dir.glob File.join folder_path, "*.*"
+		# file_paths = file_paths[1..1000]
 		logger.info "Analyzing folder #{folder_path}, #{file_paths.count} Files globbed."
 		for file_path in file_paths
 			extname = File.extname file_path
