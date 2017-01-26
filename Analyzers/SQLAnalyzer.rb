@@ -148,7 +148,7 @@ class PGSQLAnalyzer < AnalyzerBase
 	
 	def finish(*args)
 		check_database_connection
-		push_cache @cache, @names, :day, *args
+		push_cache @cache, @names, :day#, *args
 		@cache.clear
 	end
 	
