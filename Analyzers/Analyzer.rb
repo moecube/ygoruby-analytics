@@ -114,7 +114,7 @@ module Analyzer
 	end
 	
 	Analyzer.api.push 'post', '/analyze/finish' do
-		if Outputs.authorize_check params
+		if !(Outputs.authorize_check params)
 			logger.warn 'refused Analyzer finish post.'
 			[401, {}, 'not correct access key.']
 		else
