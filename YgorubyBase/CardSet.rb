@@ -7,7 +7,7 @@ class CardSet
 	attr_accessor :name
 	attr_accessor :origin_name
 	attr_accessor :code
-	attr_reader :ids
+	attr_accessor :ids
 	
 	def initialize(code, name = '', origin_name = '')
 		@code        = code
