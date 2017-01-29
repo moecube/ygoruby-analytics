@@ -8,33 +8,33 @@ class CardSet
 	attr_accessor :origin_name
 	attr_accessor :code
 	attr_reader :ids
-
+	
 	def initialize(code, name = '', origin_name = '')
 		@code        = code
 		@name        = name
 		@origin_name = origin_name
 		load_ids
 	end
-
+	
 	def [](card)
 		card = card.id unless card.is_a?(Integer)
 		ids.include? card
 	end
-
+	
 	SqlQuerySet    = 'select id from datas where (setcode & 0x0000000000000FFF == %s or setcode & 0x000000000FFF0000 == %s or setcode & 0x00000FFF00000000 == %s or setcode & 0x0FFF000000000000 == %s)'
 	SqlQuerySubSet = 'select id from datas where (setcode & 0x000000000000FFFF == %s or setcode & 0x00000000FFFF0000 == %s or setcode & 0x0000FFFF00000000 == %s or setcode & 0xFFFF000000000000 == %s)'
-
+	
 	def load_ids
 		CardSet.load_sql if @@database == nil
 		sql_query = (code <= 0xFF ? SqlQuerySet : SqlQuerySubSet)
 		query     = sprintf sql_query, @code, @code << 16, @code << 32, @code << 48
 		answer    = @@database.execute query
-		@ids = answer.map { |id| id[0] }
+		@ids      = answer.map { |id| id[0] }
 		answer.count
 	end
-
+	
 	Reg = /\!setname(\s+)(0x([0-9a-f])*)(\s+)(\S+)((\s+)(\S+)){0,1}/
-
+	
 	def self.load_line(line)
 		line.strip!
 		return nil if line.start_with? '#'
@@ -44,16 +44,16 @@ class CardSet
 			name        = match[4]
 			origin_name = match[7]
 			origin_name = "" if origin_name.nil?
-			set = CardSet.new code, name, origin_name
+			set         = CardSet.new code, name, origin_name
 			logger.info "loaded set #{name} with #{set.ids.count} proper cards."
 			set
 		end
 	end
-
+	
 	def to_s
-		"[#{@code}]#{name}" + (@ids.nil? ? "" : "(#{@ids.count})")
+		"[#{@code}]#{name}" + (@ids.nil? ? '' : "(#{@ids.count})")
 	end
-
+	
 	def self.load_lines(file)
 		until file.eof
 			line = file.readline
@@ -65,7 +65,7 @@ class CardSet
 			@@card_sets += sets unless sets.nil?
 		end
 	end
-
+	
 	def self.initialize
 		begin
 			@@card_sets.clear
@@ -78,18 +78,18 @@ class CardSet
 			logger.error ex
 		end
 	end
-
+	
 	@@card_sets = []
-
+	
 	def self.[](id)
 		return CardSet.search_set(id) if id.is_a? String
 		@@card_sets[id]
 	end
-
+	
 	def self.search_set(name)
 		sets = @@card_sets.select { |set| set.name == (name) or set.origin_name == (name) or set.code.to_s == (name) }
-		set = sets[0]
-		set = CardSet.extra_set name if set == nil
+		set  = sets[0]
+		set  = CardSet.extra_set name if set == nil
 		if set == nil
 			logger.warn "Can't find set named #{name} and no card named like it."
 			return nil
@@ -99,37 +99,60 @@ class CardSet
 		end
 		return set
 	end
-
+	
 	@@database = nil
-
+	
 	def self.load_sql
 		@@database = Card.database
 	end
-
+	
 	def to_hash
 		{
-				name: @name,
+				name:        @name,
 				origin_name: @origin_name,
-		    code: @code,
-		    ids: @ids
+				code:        @code,
+				ids:         @ids
 		}
 	end
-
+	
 	def to_json
 		to_hash().to_json
 	end
 	
-	
+	def self.from_hash(hash_set)
+		set             = CardSet.allocate
+		set.name        = hash_set['name']
+		set.origin_name = hash_set['origin_name']
+		set.ids         = hash_set['ids']
+		set.name        = 'unnamed' if set.name == nil
+		set.origin_name = 'unnamed' if set.origin_name == nil
+		set.ids         = [] if set.ids == nil
+		set.ids  = set.ids.map do |id|
+			if id.is_a? String
+				Card[]
+			elsif id.is_a? Integer
+				
+			end
+		end
+		if set.ids.count == 0 or set.name == 'unnamed'
+			logger.warn 'loaded a set with no name or no cards in.'
+		else
+			logger.info "loaded USER DEFINED set with hash named #{set.name} with #{set.ids.count} cards."
+		end
+		@@card_sets.push set
+		set
+	end
 end
 
 CardSet.initialize
 
 class CardSet
 	SqlNameSet = 'select id from texts where name like \'%%%s%%\''
+	
 	def self.extra_set(name)
-		set = CardSet.allocate
-		set.name = name
-		set.code = ''
+		set             = CardSet.allocate
+		set.name        = name
+		set.code        = ''
 		set.origin_name = ''
 		set.load_named_ids name
 		set = nil if set.ids.count == 0
@@ -139,9 +162,9 @@ class CardSet
 	
 	def load_named_ids(name)
 		CardSet.load_sql if @@database == nil
-		query     = sprintf SqlNameSet, name
-		answer    = @@database.execute query
-		@ids = answer.map { |id| id[0] }
+		query  = sprintf SqlNameSet, name
+		answer = @@database.execute query
+		@ids   = answer.map { |id| id[0] }
 		if @ids.count == 0
 			logger.warn "no card named with #{name}"
 		else
