@@ -127,13 +127,21 @@ class CardSet
 		set.name        = 'unnamed' if set.name == nil
 		set.origin_name = 'unnamed' if set.origin_name == nil
 		set.ids         = [] if set.ids == nil
-		set.ids  = set.ids.map do |id|
-			if id.is_a? String
-				Card[]
-			elsif id.is_a? Integer
-				
+		set.ids.map! do |id|
+			if id.is_a? Integer
+				id
+			elsif id.is_a? Hash
+				inner_set = CardSet.search_set id['name']
+				if inner_set != nil
+					inner_set.ids
+				else
+					-1
+				end
+			else
+				-1
 			end
 		end
+		set.ids.flatten!
 		if set.ids.count == 0 or set.name == 'unnamed'
 			logger.warn 'loaded a set with no name or no cards in.'
 		else

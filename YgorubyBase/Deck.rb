@@ -112,6 +112,7 @@ class Deck
 		end
 		file.close
 		deck.separate_ex_from_main
+		deck.check_alias
 		deck.classify
 		deck
 	end
@@ -121,6 +122,7 @@ class Deck
 		deck = Deck.new
 		lines.each { |line| deck.accept_line line }
 		deck.separate_ex_from_main
+		deck.check_alias
 		deck.classify
 		deck
 	end
@@ -149,5 +151,16 @@ class Deck
 
 	def inspect
 		to_hash().inspect
+	end
+	
+	def check_alias
+		check_pack_alias self.main
+		check_pack_alias self.side
+		check_pack_alias self.ex
+	end
+	
+	def check_pack_alias(pack)
+		alias_list = Card.alias_list
+		pack.replace pack.map { |id|  alias_list.has_key?(id) ? alias_list[id] : id }
 	end
 end
