@@ -8,3 +8,4 @@ HTMLGenerator/content.html
 *.log
 Plugins/DeckIdentifier/
 Config.json
+mysterious_decks/

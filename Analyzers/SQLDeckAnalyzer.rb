@@ -19,7 +19,7 @@ class SQLDeckAnalyzer < SQLSingleCardAnalyzer
 	
 	def create_caches
 		@deck_cache = Cache.new
-		@tag_cache = Cache.new
+		@tag_cache  = Cache.new
 	end
 	
 	def load_names
@@ -29,7 +29,7 @@ class SQLDeckAnalyzer < SQLSingleCardAnalyzer
 		@names = @deck_names
 		
 		@deck_names.table_names = { day: 'deck_day', week: 'deck_week', halfmonth: 'deck_halfmonth', month: 'deck_month', season: 'deck_season' }
-		@tag_names.table_names = { day: 'tag_day', week: 'tag_week', halfmonth: 'tag_halfmonth', month: 'tag_month', season: 'tag_season' }
+		@tag_names.table_names  = { day: 'tag_day', week: 'tag_week', halfmonth: 'tag_halfmonth', month: 'tag_month', season: 'tag_season' }
 	end
 	
 	def load_commands
@@ -80,16 +80,22 @@ class SQLDeckAnalyzer < SQLSingleCardAnalyzer
 	end
 	
 	def generate_data(deck)
-		deck, tags = DeckIdentifier.global[deck]
-		if deck == nil
-			deck = '迷之卡组'
+		decktype, tags = DeckIdentifier.global[deck]
+		if decktype == nil
+			decktype = '迷之卡组'
 			tags = []
+			# 记录器，这是一个暂时性的方案。
+			Thread.new do
+				Dir.mkdir 'mysterious_decks' unless Dir.exist? 'mysterious_decks'
+				deck.save_ydk 'mysterious_decks/' + Time.now.to_s + '.ydk'
+			end
 		end
-		[deck, tags]
+		[decktype, tags]
 	end
 	
 	def generate_cache_sql_string(data)
 		time_period, time, source, name, count = data
+		
 		inner = ["'#{name}'", "'#{time}'", time_period, "'#{source}'", count].join ', '
 		"(#{inner})"
 	end
@@ -116,14 +122,14 @@ class SQLDeckAnalyzer < SQLSingleCardAnalyzer
 	
 	def finish(*args)
 		check_database_connection
-		push_cache @deck_cache, @deck_names, :day#, *args
-		push_cache @tag_cache, @tag_names, :day#, *args
+		push_cache @deck_cache, @deck_names, :day #, *args
+		push_cache @tag_cache, @tag_names, :day #, *args
 		@deck_cache.clear
 		@tag_cache.clear
 	end
 	
 	def output(*args)
-		
+		output_deck *args
 	end
 	
 	def output_deck(*args)
@@ -158,7 +164,7 @@ class SQLDeckAnalyzer < SQLSingleCardAnalyzer
 	
 	def translate_result_to_hash(pg_result)
 		return [] unless check_pg_result pg_result
-		pg_result.map {|piece| piece['count'].to_i }
+		pg_result.map { |piece| piece['count'].to_i }
 	end
 end
 
