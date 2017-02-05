@@ -67,9 +67,9 @@ class SQLDeckAnalyzer < SQLSingleCardAnalyzer
 		@commands[:union] = <<-Command
 			insert into %2$s
 			select name, '%4$s', %5$s, source, sum(count) from %1$s
-			where %1$s.time > '%3$s' and %1$s.time <= '%4$s' group by (id, category, source)
+			where %1$s.time > '%3$s' and %1$s.time <= '%4$s' group by (name, source)
 			on conflict on constraint card_environment_%2$s do update set
-				count = excluded.count
+				count = excluded.count;
 		Command
 		
 		# [     1    ,   2 ,   3   ,   4   ,  5  ]
