@@ -33,77 +33,8 @@ class CardSet
 		answer.count
 	end
 	
-	Reg = /\!setname(\s+)(0x([0-9a-f])*)(\s+)(\S+)((\s+)(\S+)){0,1}/
-	
-	def self.load_line(line)
-		line.strip!
-		return nil if line.start_with? '#'
-		matches = line.scan Reg
-		matches.map do |match|
-			code        = eval(match[1])
-			name        = match[4]
-			origin_name = match[7]
-			origin_name = "" if origin_name.nil?
-			set         = CardSet.new code, name, origin_name
-			logger.info "loaded set #{name} with #{set.ids.count} proper cards."
-			set
-		end
-	end
-	
 	def to_s
-		"[#{@code}]#{name}" + (@ids.nil? ? '' : "(#{@ids.count})")
-	end
-	
-	def self.load_lines(file)
-		until file.eof
-			line = file.readline
-			break if line.strip.start_with? '!setname' or line.strip.start_with? '#setnames'
-		end
-		until file.eof
-			line        = file.readline
-			sets        = load_line line
-			@@card_sets += sets unless sets.nil?
-		end
-	end
-	
-	def self.initialize
-		begin
-			@@card_sets.clear
-			file_path = $config['YgorubyBase.Strings.zh-CN']
-			file      = File.open file_path
-			CardSet.load_lines file
-			file.close
-		rescue => ex
-			logger.error "Failed to load conf file #{file_path}, for:"
-			logger.error ex
-		end
-	end
-	
-	@@card_sets = []
-	
-	def self.[](id)
-		return CardSet.search_set(id) if id.is_a? String
-		@@card_sets[id]
-	end
-	
-	def self.search_set(name)
-		sets = @@card_sets.select { |set| set.name == (name) or set.origin_name == (name) or set.code.to_s == (name) }
-		set  = sets[0]
-		set  = CardSet.extra_set name if set == nil
-		if set == nil
-			logger.warn "Can't find set named #{name} and no card named like it."
-			return nil
-		end
-		if sets.size > 1
-			logger.warn "More then one set named #{name}"
-		end
-		return set
-	end
-	
-	@@database = nil
-	
-	def self.load_sql
-		@@database = Card.database
+		"[#{@code}]#{@name}" + (@ids.nil? ? '' : " (#{@ids.count} cards)")
 	end
 	
 	def to_hash
@@ -119,7 +50,7 @@ class CardSet
 		to_hash().to_json
 	end
 	
-	def self.from_hash(hash_set)
+	def self.from_hash(hash_set, environment = nil)
 		set             = CardSet.allocate
 		set.name        = hash_set['name']
 		set.origin_name = hash_set['origin_name']
@@ -130,8 +61,8 @@ class CardSet
 		set.ids.map! do |id|
 			if id.is_a? Integer
 				id
-			elsif id.is_a? Hash
-				inner_set = CardSet.search_set id['name']
+			elsif id.is_a? Hash and environment != nil
+				inner_set = environment.search_set id['name']
 				if inner_set != nil
 					inner_set.ids
 				else
@@ -147,12 +78,65 @@ class CardSet
 		else
 			logger.info "loaded USER DEFINED set with hash named #{set.name} with #{set.ids.count} cards."
 		end
-		@@card_sets.push set
 		set
 	end
+	
+	Reg              = /\!setname(\s+)(0x([0-9a-f])*)(\s+)(\S+)((\s+)(\S+)){0,1}/
+	@@database       = nil
+	@@last_file_sets = nil
+	
+	def self.load_line(line)
+		line.strip!
+		return nil if line.start_with? '#'
+		matches = line.scan Reg
+		matches.map do |match|
+			code        = eval(match[1])
+			name        = match[4]
+			origin_name = match[7]
+			origin_name = '' if origin_name.nil?
+			set         = CardSet.new code, name, origin_name
+			logger.info "loaded set #{name} with #{set.ids.count} proper cards."
+			set
+		end
+	end
+	
+	def self.load_lines(file)
+		until file.eof
+			line = file.readline
+			break if line.strip.start_with? '!setname' or line.strip.start_with? '#setnames'
+		end
+		sets = []
+		until file.eof
+			line = file.readline
+			logger.info "processing line #{line}"
+			set = load_line line
+			sets += set if set != nil
+		end
+		sets
+	end
+	
+	def self.load_file_sets
+		if @@last_file_sets != nil
+			logger.info "Loaded file #{@@last_file_sets.count} sets from cache."
+			return @@last_file_sets
+		end
+		begin
+			file_path = $config['YgorubyBase.Strings.zh-CN']
+			file      = File.open file_path
+			sets      = CardSet.load_lines file
+			file.close
+			@@last_file_sets = sets
+			return sets
+		rescue => ex
+			logger.error "Failed to load conf file #{file_path}, for:"
+			logger.error ex
+		end
+	end
+	
+	def self.load_sql
+		@@database = Card.database
+	end
 end
-
-CardSet.initialize
 
 class CardSet
 	SqlNameSet = 'select id from texts where name like \'%%%s%%\''
@@ -164,7 +148,6 @@ class CardSet
 		set.origin_name = ''
 		set.load_named_ids name
 		set = nil if set.ids.count == 0
-		@@card_sets.push set unless set.nil?
 		set
 	end
 	
@@ -176,8 +159,83 @@ class CardSet
 		if @ids.count == 0
 			logger.warn "no card named with #{name}"
 		else
-			logger.info "loaded EXTRA set #{name} with #{@ids.count} proper cards."
+			logger.info "created EXTRA set #{name} with #{@ids.count} proper cards."
 		end
 		answer.count
 	end
 end
+
+class CardSets
+	@@set_environments = { }
+	
+	def self.initialize
+		@@set_environments[:global] = CardSets.new
+	end
+	
+	def initialize
+		@card_sets  = CardSet.load_file_sets
+		@extra_sets = []
+		@user_sets  = []
+	end
+	
+	def [](id)
+		return search_set(id) if id.is_a? String
+		@card_sets[id]
+	end
+	
+	def search_set(name)
+		sets = @card_sets.select { |set| set.name == (name) or set.origin_name == (name) or set.code.to_s == (name) }
+		sets += @extra_sets.select { |set| set.name == (name) or set.origin_name == (name) or set.code.to_s == (name) }
+		sets += @user_sets.select { |set| set.name == (name) or set.origin_name == (name) or set.code.to_s == (name) }
+		set  = sets[0]
+		if set == nil
+			set = CardSet.extra_set name
+			@extra_sets.push set
+		end
+		if set == nil
+			logger.warn "Can't find set named #{name} and no card named like it."
+			return nil
+		end
+		if sets.size > 1
+			logger.warn "More than one set named #{name}"
+		end
+		return set
+	end
+	
+	def create_set(hash)
+		CardSet.from_hash hash, self
+	end
+	
+	def define_set(set)
+		@user_sets.push set if set != nil
+	end
+	
+	def clear_extra
+		@extra_sets.clear
+		@user_sets.clear
+	end
+	
+	class << self
+		def [](index)
+			index = index.to_sym if index.is_a? String
+			@@set_environments[index]
+		end
+		
+		def []=(index, value)
+			index = index.to_sym if index.is_a? String
+			@@set_environments[index] = value
+		end
+		
+		alias old_mm method_missing
+		
+		def method_missing(name, *args, &block)
+			if @@set_environments.include? name.to_sym
+				return @@set_environments[name.to_sym]
+			else
+				old_mm name, *args, &block
+			end
+		end
+	end
+end
+
+CardSets.initialize
