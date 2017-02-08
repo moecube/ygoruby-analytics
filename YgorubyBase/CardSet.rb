@@ -81,7 +81,7 @@ class CardSet
 		set
 	end
 	
-	Reg              = /\!setname(\s+)(0x([0-9a-f])*)(\s+)(\S+)((\s+)(\S+)){0,1}/
+	Reg              = /\!setname(\s+)(0x([0-9a-f])*)(\s+)(.+?)(\t(.+)){0,1}$/
 	@@database       = nil
 	@@last_file_sets = nil
 	
@@ -92,7 +92,7 @@ class CardSet
 		matches.map do |match|
 			code        = eval(match[1])
 			name        = match[4]
-			origin_name = match[7]
+			origin_name = match[6]
 			origin_name = '' if origin_name.nil?
 			set         = CardSet.new code, name, origin_name
 			logger.info "loaded set #{name} with #{set.ids.count} proper cards."
@@ -108,7 +108,6 @@ class CardSet
 		sets = []
 		until file.eof
 			line = file.readline
-			logger.info "processing line #{line}"
 			set = load_line line
 			sets += set if set != nil
 		end
@@ -190,7 +189,7 @@ class CardSets
 		set  = sets[0]
 		if set == nil
 			set = CardSet.extra_set name
-			@extra_sets.push set
+			@extra_sets.push set if set != nil
 		end
 		if set == nil
 			logger.warn "Can't find set named #{name} and no card named like it."
