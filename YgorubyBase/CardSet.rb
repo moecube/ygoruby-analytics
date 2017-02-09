@@ -39,6 +39,7 @@ class CardSet
 	
 	def to_hash
 		{
+				type:        'card set',
 				name:        @name,
 				origin_name: @origin_name,
 				code:        @code,
@@ -46,7 +47,7 @@ class CardSet
 		}
 	end
 	
-	def to_json
+	def to_json(*args)
 		to_hash().to_json
 	end
 	
