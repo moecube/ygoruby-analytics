@@ -1,5 +1,7 @@
 require 'sinatra'
 require 'sinatra/base'
+require 'webrick'
+
 require File.join File.dirname(__FILE__), '/../../Config.rb'
 require File.join File.dirname(__FILE__), '/LinkStatic.rb'
 
@@ -36,13 +38,13 @@ module Outputs
 			# disable default sinatra logs.
 			configure do
 				disable :logging
+				set :server_settings, { Logger: WEBrick::Log.new("/dev/null"), AccessLog: [] }
 			end
 			
 		end
 		
 		
 		def self.start!
-			# use Rack::LinkStatic, :urls => ['/'], :root => 'Outputs/HTMLGenerator'
 			self.define_defaults
 			run!
 		end
