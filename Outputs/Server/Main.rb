@@ -32,6 +32,12 @@ module Outputs
 			before do
 				logger.level = Logger::INFO
 			end
+			
+			# disable default sinatra logs.
+			configure do
+				disable :logging
+			end
+			
 		end
 		
 		
