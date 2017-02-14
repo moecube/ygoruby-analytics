@@ -71,7 +71,7 @@ class Deck
 		@ex   = new_ex
 	end
 
-	DECKFILE_HEAD      = "created by RecordAnalyser."
+	DECKFILE_HEAD      = "#created by RecordAnalyser."
 	DECKFILE_MAIN_FLAG = "#main"
 	DECKFILE_EX_FLAG   = "#extra"
 	DECKFILE_SIDE_FLAG = "!side"
