@@ -1,4 +1,6 @@
 require File.dirname(__FILE__) + '/SQLAnalyzer.rb'
+require File.dirname(__FILE__) + '/SQLSingleCardAnalyzer.rb'
+require_plugin 'deckIdentifier'
 
 class SQLDeckAnalyzer < SQLSingleCardAnalyzer
 	class Cache < Cache
@@ -75,7 +77,13 @@ class SQLDeckAnalyzer < SQLSingleCardAnalyzer
 		# [     1    ,   2 ,   3   ,   4   ,  5  ]
 		# [Table Name, Time, Source, Number, Page]
 		@commands[:output] = <<-Command
-			select * from %1$s where time = '%2$s' and source = '%3$s' order by frequency desc count %4$s
+			select * from %1$s where time = '%2$s' and source = '%3$s' order by count desc limit %4$s
+		Command
+		
+		#[     1    ,   2 ,    3  ,   4 ]
+		#[Table Name, Time, Source, Name]
+		@commands[:query_tag] = <<-Command
+			select * from %1$s where time = '%2$s' and source = '%3$s' and name like '%4$s-%%' order by count desc limit 3
 		Command
 	end
 	
@@ -136,35 +144,62 @@ class SQLDeckAnalyzer < SQLSingleCardAnalyzer
 		check_database_connection
 		time    = draw_time *args
 		periods = @deck_names.periods
-		sources = @deck_names.sources.values - [@deck_names.sources[:unknown], @deck_names.sources[:handWritten]]
+		sources = @deck_names.sources.values #- [@deck_names.sources[:unknown], @deck_names.sources[:handWritten]]
+		number     = @config['Output.Numbers']
+		number     = 50 unless number.is_a? Integer
 		result  = {}
 		logger.info 'Start to output.'
 		periods.each do |period|
 			period_hash = {}
 			sources.each do |source|
 				begin
-					period_hash[source] = translate_result_to_hash output_table period, source, time
+					# 我玻璃心碎了
+					period_hash[source] = translate_deck_result_to_hash output_deck_table(period, source, time, number), period, source, time
 				rescue => ex
 					logger.warn ex
 				end
-				logger.info "Deck Analyzer #{period}, #{source}: #{period_hash[source]} decks."
+				logger.info "Deck Analyzer #{period}, #{source}: #{period_hash[source].count} decks."
 			end
 			result[period.to_s] = period_hash
 		end
 		@deck_last_result = result
 	end
 	
-	def output_table(type, source, time)
+	def output_deck_table(type, source, time, number)
 		arguments  = @names.type_arguments type, time
 		table_name = arguments[:TableName]
 		time_flag  = arguments[:TimeStr]
-		command    = sprintf @commands[:output], table_name, category, time_flag, source, number, 1
+		command    = sprintf @commands[:output], table_name, time_flag, source, number, 1
 		execute_command command
 	end
 	
-	def translate_result_to_hash(pg_result)
+	def output_tag_table(type, source, time, name)
+		arguments  = @names.type_arguments type, time
+		table_name = arguments[:TableName]
+		time_flag  = arguments[:TimeStr]
+		command    = sprintf @commands[:query_tag], table_name, time_flag, source, name
+		execute_command command
+	end
+	
+	def translate_deck_result_to_hash(pg_result, type, source, time)
 		return [] unless check_pg_result pg_result
-		pg_result.map { |piece| piece['count'].to_i }
+		pg_result.map do |piece|
+			{
+					name: piece['name'],
+					count: piece['count'].to_i,
+					tags: translate_tag_result_to_hash(output_tag_table type, source, time, piece['name'])
+			}
+		end
+	end
+	
+	def translate_tag_result_to_hash(pg_result)
+		return [] unless check_pg_result pg_result
+		pg_result.map do |piece|
+			{
+					name: piece['name'],
+					count: piece['count'].to_i
+			}
+		end
 	end
 end
 
