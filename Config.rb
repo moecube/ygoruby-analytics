@@ -4,7 +4,7 @@ require File.dirname(__FILE__) + "/Log.rb"
 module YgorubyConfig
 	def self.load_config
 		begin
-			file    = File.open File.dirname(__FILE__) + "/Config.json"
+			file    = File.open File.dirname(__FILE__) + '/Resources/Config/Config.json'
 			str     = file.read
 			$config = JSON.parse str
 		rescue => exception

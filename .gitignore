@@ -7,5 +7,5 @@ Test.rb
 HTMLGenerator/content.html
 *.log
 Plugins/DeckIdentifier/
-Config.json
+Resources/Config/Config.json
 mysterious_decks/
