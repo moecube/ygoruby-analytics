@@ -64,7 +64,7 @@ class SQLCounterAnalyzer < PGSQLAnalyzer
 		@commands[:update_deck] = <<-Command
 			insert into %1$s values
 				%2$s
-			on conflict on constraint count_environment
+			on conflict on constraint %1$s_environment
 			  do update set
 			    count = %1$s.count + excluded.count
 		Command
@@ -81,7 +81,7 @@ class SQLCounterAnalyzer < PGSQLAnalyzer
 			insert into %2$s
 			select '%4$s', %5$s, source, sum(count) from %1$s
 			where %1$s.time > '%3$s' and %1$s.time <= '%4$s' and %1$s.timeperiod = 1  group by (source)
-			on conflict on constraint count_environment do update set
+			on conflict on constraint %2$s_environment do update set
 				count = excluded.count
 		Command
 	end
