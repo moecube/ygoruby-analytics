@@ -55,7 +55,7 @@ class SQLCounterAnalyzer < PGSQLAnalyzer
 				timePeriod integer default 1,
 				source varchar default 'unknown',
 				count integer,
-				constraint count_environment primary key (time, timePeriod, source)
+				constraint %1$s_environment primary key (time, timePeriod, source)
 			);
 		Command
 		
