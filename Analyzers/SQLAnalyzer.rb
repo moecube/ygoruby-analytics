@@ -176,16 +176,17 @@ class PGSQLAnalyzer < AnalyzerBase
     if @config['UseProcessingPool']
       @processing_pool.push({:deck => deck, :args => args})
     else
-      process_deck deck
+      process_deck deck, *args
     end
   end
 
   def process_thread
     loop do
       if @processing_pool.count == 0
-        sleep(1)
+        sleep(5)
       else
-        process_deck @processing_pool.pop
+        content = @processing_pool.pop()
+        process_deck content[:deck], *(content[:args])
       end
     end
   end

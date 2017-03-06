@@ -101,7 +101,6 @@ module Analyzer
 			source       = params['arena']
 			deck_content = params['deck']
 			Analyzer.analyze Deck.load_ydk_str(deck_content), source: source
-			base_logger.info 'received' + source
 			'Deck read'
 		end
 	end
