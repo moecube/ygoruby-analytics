@@ -13,9 +13,14 @@ default | 当与以上任一均不匹配，当做 day
 ### Source（统计数据来源）
 name | desc
 ---|---
-athletic | 竞技场
-entertainment | 娱乐匹配
-handwritten | 手动输入
+mycard-athletic|竞技匹配
+mycard-entertain|娱乐匹配
+mycard-custom|自由对战
+mycard-tag|TAG 对战
+233-athletic|随机M房
+233-entertain|随机S房
+233-custom|自由对战
+233-tag|TAG 对战
 unknown | 未分类
 default | 当与以上任一均不匹配，当做 unknown
 

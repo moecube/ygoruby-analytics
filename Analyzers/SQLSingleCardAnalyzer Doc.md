@@ -13,6 +13,7 @@ numbers | 投入卡次 | 不用管 | "int"
 putone | 投入1张的频度 | | "int"
 puttwo | 投入2张的频度 | | "int"
 putthree | 投入3张的频度 | | "int"
+putoverthree|投入超过3张的频度| | "int"
 name | 卡名 | | "str"
 main_type_desc | 卡片类别 | | "str"
 
@@ -30,9 +31,14 @@ default | 当与以上任一均不匹配，当做 day
 ### Source（统计数据来源）
 name | desc
 ---|---
-athletic | 竞技场
-entertainment | 娱乐匹配
-handwritten | 手动输入
+mycard-athletic|竞技匹配
+mycard-entertain|娱乐匹配
+mycard-custom|自由对战
+mycard-tag|TAG 对战
+233-athletic|随机M房
+233-entertain|随机S房
+233-custom|自由对战
+233-tag|TAG 对战
 unknown | 未分类
 default | 当与以上任一均不匹配，当做 unknown
 
