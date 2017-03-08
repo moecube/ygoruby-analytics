@@ -166,7 +166,7 @@ class SQLDeckAnalyzer < SQLSingleCardAnalyzer
 	end
 	
 	def output_deck_table(type, source, time, number)
-		arguments  = @names.type_arguments type, time
+		arguments  = @deck_names.type_arguments type, time
 		table_name = arguments[:TableName]
 		time_flag  = arguments[:TimeStr]
 		command    = sprintf @commands[:output], table_name, time_flag, source, number, 1
@@ -174,7 +174,7 @@ class SQLDeckAnalyzer < SQLSingleCardAnalyzer
 	end
 	
 	def output_tag_table(type, source, time, name)
-		arguments  = @names.type_arguments type, time
+		arguments  = @tag_names.type_arguments type, time
 		table_name = arguments[:TableName]
 		time_flag  = arguments[:TimeStr]
 		command    = sprintf @commands[:query_tag], table_name, time_flag, source, name
