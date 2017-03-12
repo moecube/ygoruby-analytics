@@ -398,6 +398,7 @@ class PGSQLAnalyzer < AnalyzerBase
 
     def source_name(source)
       source_str = @sources[source.to_s]
+      logger.warn "unknown data source #{source}" if source_str == nil
       source_str == nil ? @sources[@unknown_flag] : source_str
     end
   end
