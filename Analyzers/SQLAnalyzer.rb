@@ -197,10 +197,10 @@ class PGSQLAnalyzer < AnalyzerBase
     source = @names.source_name source
     time = draw_time hash[:time]
     options = {source: source, time: time}
-    add_data_to_cache generate_data(deck), options
+    add_data_to_cache generate_data(deck, options), options
   end
 
-  def generate_data(deck)
+  def generate_data(deck, options)
     # must override
   end
 

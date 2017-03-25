@@ -144,7 +144,7 @@ class SQLSingleCardAnalyzer < PGSQLAnalyzer
 		"(#{inner})"
 	end
 	
-	def generate_data(deck)
+	def generate_data(deck, options)
 		data = {
 				@names.categories[:main] => generate_pack_data(deck.main_classified),
 				@names.categories[:side] => generate_pack_data(deck.side_classified),

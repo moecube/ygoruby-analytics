@@ -87,7 +87,7 @@ class SQLDeckAnalyzer < SQLSingleCardAnalyzer
 		Command
 	end
 	
-	def generate_data(deck)
+	def generate_data(deck, options)
 		decktype, tags = DeckIdentifier.global[deck]
 		if decktype == nil
 			decktype = '迷之卡组'
@@ -95,7 +95,7 @@ class SQLDeckAnalyzer < SQLSingleCardAnalyzer
 			# 记录器，这是一个暂时性的方案。
 			Thread.new do
 				Dir.mkdir 'mysterious_decks' unless Dir.exist? 'mysterious_decks'
-				deck.save_ydk 'mysterious_decks/' + Time.now.to_s + '.ydk'
+				deck.save_ydk "mysterious_decks/#{options[:source]}_#{Time.now.to_s}.ydk"
 			end
 		end
 		[decktype, tags]

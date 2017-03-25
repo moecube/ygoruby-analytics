@@ -86,7 +86,7 @@ class SQLCounterAnalyzer < PGSQLAnalyzer
 		Command
 	end
 	
-	def generate_data(deck)
+	def generate_data(deck, options)
 		1
 	end
 	
