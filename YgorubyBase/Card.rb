@@ -178,7 +178,9 @@ class Card
 	TYPE_FLIP        = 2097152
 	TYPE_TOON        = 4194304
 	TYPE_XYZ         = 8388608
-	TYPE_PENDULUM    = 16777216
+  TYPE_PENDULUM    = 16777216
+  TYPE_SPSUMMON    = 33554432
+  TYPE_LINK        = 67108864
 
 	@@main_type_texts = {
 			"monster" => "怪兽",
@@ -209,7 +211,9 @@ class Card
 			"xyz"      => "XYZ",
 			"fusion"   => "融合",
 			"ritual"   => "仪式",
-			"pendulum" => "灵摆",
+      "pendulum" => "灵摆",
+      "spsummon" => "特殊召唤",
+      "link" => "连接",
 
 			"spirit"   => "灵魂",
 			"union"    => "同盟",
@@ -231,7 +235,7 @@ class Card
 	end
 
 	def is_ex?
-		is_synchro? or is_xyz? or is_fusion?
+		is_synchro? or is_xyz? or is_fusion? or is_link?
 	end
 
 	def self.type_str(type)
