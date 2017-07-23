@@ -7,6 +7,7 @@ class Deck
 
 	attr_accessor :main_classified
 	attr_accessor :ex_classified
+	attr_accessor :ori_classified
 	attr_accessor :cards_classified
 	attr_accessor :side_classified
 
@@ -37,6 +38,7 @@ class Deck
 		self.main_classified  = classify_pack self.main
 		self.ex_classified    = classify_pack self.ex
 		self.side_classified  = classify_pack self.side
+		self.ori_classified   = classify_pack self.main + self.ex
 		self.cards_classified = classify_pack self.main + self.ex + self.side
 	end
 
