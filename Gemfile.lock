@@ -1,8 +1,13 @@
+GIT
+  remote: git@github.com:IamIpanda/RubyLogger.git
+  revision: 035c1994af6ae2ab6602f90961da0a919f836463
+  specs:
+    iami-logger (0.1.1)
+      colored
+
 GEM
   remote: https://rubygems.org/
   specs:
-    better-logger (0.0.4)
-      colored
     colored (1.2)
     json (2.0.3)
     mini_portile2 (2.1.0)
@@ -24,7 +29,7 @@ PLATFORMS
   ruby
 
 DEPENDENCIES
-  better-logger
+  iami-logger!
   json
   nokogiri
   pg

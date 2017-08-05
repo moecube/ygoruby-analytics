@@ -34,6 +34,13 @@ module Outputs
 			before do
 				logger.level = Logger::INFO
 			end
+
+			get '/log' do
+
+			end
+
+			before '/log', &logger.before_function
+
 			
 			# disable default sinatra logs.
 			configure do
