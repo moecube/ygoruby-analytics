@@ -1,5 +1,5 @@
 GIT
-  remote: git@github.com:IamIpanda/RubyLogger.git
+  remote: https://github.com/IamIpanda/RubyLogger.git
   revision: 035c1994af6ae2ab6602f90961da0a919f836463
   specs:
     iami-logger (0.1.1)
