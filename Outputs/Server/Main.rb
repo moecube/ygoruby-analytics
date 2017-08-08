@@ -35,11 +35,11 @@ module Outputs
 				logger.level = Logger::INFO
 			end
 
-			get '/log' do
+			get '/analyze/log' do
 
 			end
 
-			before '/log', &logger.before_function
+			before '/analyze/log', &logger.before_function
 
 			
 			# disable default sinatra logs.
