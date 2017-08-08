@@ -8,7 +8,7 @@ require File.dirname(__FILE__) + '/Outputs/Server/Main.rb'
 
 # 预输出
 begin
-  Thread.new { Analyzer.output }
+  Thread.new { Analyzer.output(Time.now - 86400) }
 rescue => ex
   Thread.fatal 'Failed to pre output.'
   Thread.fatal ex
