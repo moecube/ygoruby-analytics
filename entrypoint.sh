@@ -2,4 +2,4 @@
 
 env > /etc/environment
 cron
-ruby -E UTF-8 main.rb 
+bundler exec ruby -E UTF-8 main.rb
