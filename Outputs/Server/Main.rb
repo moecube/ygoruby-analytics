@@ -35,6 +35,10 @@ module Outputs
 				logger.level = Logger::INFO
 			end
 
+			before '/analyze/log' do
+				headers 'Access-Control-Allow-Origin' => '*'
+			end
+
 			get '/analyze/log', provides: 'text/event-stream', &(logger().sinatra_proc)
 			
 			# disable default sinatra logs.
