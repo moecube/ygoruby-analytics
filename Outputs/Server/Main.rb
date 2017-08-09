@@ -1,6 +1,6 @@
 require 'sinatra'
 require 'sinatra/base'
-require 'webrick'
+#require 'webrick'
 
 require File.join File.dirname(__FILE__), '/../../Config.rb'
 require File.join File.dirname(__FILE__), '/LinkStatic.rb'
@@ -36,7 +36,8 @@ module Outputs
 			end
 
 			before '/analyze/log' do
-				headers 'Access-Control-Allow-Origin' => '*'
+				headers 'Access-Control-Allow-Origin' => 'http://mycard.moe'
+				headers 'Access-Control-Allow-Credentials' => 'true'
 			end
 
 			get '/analyze/log', provides: 'text/event-stream', &(logger().sinatra_proc)
@@ -44,7 +45,7 @@ module Outputs
 			# disable default sinatra logs.
 			configure do
 				disable :logging
-				set :server_settings, { Logger: WEBrick::Log.new("/dev/null"), AccessLog: [] }
+				#set :server_settings, { Logger: WEBrick::Log.new("/dev/null"), AccessLog: [] }
 			end
 			
 		end
