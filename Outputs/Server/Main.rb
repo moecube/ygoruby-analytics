@@ -35,12 +35,7 @@ module Outputs
 				logger.level = Logger::INFO
 			end
 
-			get '/analyze/log' do
-
-			end
-
-			before '/analyze/log', &logger.before_function
-
+			get '/analyze/log', provides: 'text/event-stream', &(logger().sinatra_proc)
 			
 			# disable default sinatra logs.
 			configure do

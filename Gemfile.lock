@@ -1,14 +1,16 @@
 GIT
   remote: https://github.com/IamIpanda/RubyLogger.git
-  revision: 035c1994af6ae2ab6602f90961da0a919f836463
+  revision: 9e6fc5cdbe71a5a572fb2eb42fe77f49ab18227a
   specs:
-    iami-logger (0.1.1)
+    iami-logger (0.1.3)
       colored
 
 GEM
   remote: https://rubygems.org/
   specs:
     colored (1.2)
+    daemons (1.2.4)
+    eventmachine (1.2.3)
     json (2.0.3)
     mini_portile2 (2.1.0)
     nokogiri (1.7.0.1)
@@ -23,6 +25,10 @@ GEM
       rack-protection (~> 1.4)
       tilt (>= 1.3, < 3)
     sqlite3 (1.3.13)
+    thin (1.7.2)
+      daemons (~> 1.0, >= 1.0.9)
+      eventmachine (~> 1.0, >= 1.0.4)
+      rack (>= 1, < 3)
     tilt (2.0.6)
 
 PLATFORMS
@@ -36,6 +42,7 @@ DEPENDENCIES
   ruby-lzma
   sinatra
   sqlite3
+  thin
 
 BUNDLED WITH
    1.14.5

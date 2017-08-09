@@ -16,4 +16,6 @@ end
 
 Outputs::SinatraServer.require_apis Analyzer.api
 Outputs::SinatraServer.require_apis Plugin.api
+
+logger.info 'Server started on ' + Time.now.strftime('%Y-%m-%d %H:%M:%S')
 Outputs::SinatraServer.start!
