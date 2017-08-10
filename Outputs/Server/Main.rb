@@ -36,7 +36,7 @@ module Outputs
 			end
 
 			before '/analyze/log' do
-				headers 'Access-Control-Allow-Origin' => 'https://mycard.moe'
+				headers 'Access-Control-Allow-Origin' => '*'
 				headers 'Access-Control-Allow-Credentials' => 'true'
 			end
 
