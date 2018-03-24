@@ -26,7 +26,7 @@ class CardSet
 
 	def load_ids
 		CardSet.load_sql if @@database == nil
-		sql_query = (code <= 0xFF ? SqlQuerySet : SqlQuerySubSet)
+		sql_query = (code <= 0xFFF ? SqlQuerySet : SqlQuerySubSet)
 		query     = sprintf sql_query, @code, @code << 16, @code << 32, @code << 48
 		answer    = @@database.execute query
 		@ids = answer.map { |id| id[0] }
