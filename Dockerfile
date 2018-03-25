@@ -1,4 +1,4 @@
-FROM ruby
+FROM ruby:2.0
 
 # 安装 apt 依赖
 RUN apt-get update
