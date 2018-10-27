@@ -330,7 +330,15 @@ class PGSQLAnalyzer < AnalyzerBase
           '233-athletic' => '233-athletic',
           '233-entertain' => '233-entertainment',
           '233-custom' => '233-custom',
-          '233-tag' => '233-tag'
+          '233-tag' => '233-tag',
+          'koishi-athletic' => 'koishi-athletic',
+          'koishi-entertain' => 'koishi-entertainment',
+          'koishi-custom' => 'koishi-custom',
+          'koishi-tag' => 'koishi-tag',
+          'koishi_tcg-athletic' => 'koishi_tcg-athletic',
+          'koishi_tcg-entertain' => 'koishi_tcg-entertainment',
+          'koishi_tcg-custom' => 'koishi_tcg-custom',
+          'koishi_tcg-tag' => 'koishi_tcg-tag',
       }
       @sources[@unknown_flag] = 'unknown'
     end
